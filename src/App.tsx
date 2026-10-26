@@ -398,6 +398,7 @@ function AppContent() {
     currentNodeId, 
   } = gameState;
 
+  const activeEnemy = currentMapId && currentNodeId ? gameState.maps[currentMapId]?.nodes.find(node => node.id === currentNodeId)?.currentEnemy : null;
   const { user, signInWithGoogle } = useAuth();
 
   // Reference for scroll reset
@@ -437,6 +438,7 @@ function AppContent() {
   }, [currentView]);
   const [showDeath, setShowDeath] = useState(false);
   const [activeBiomeMapId, setActiveBiomeMapId] = useState<MapId | null>(null);
+  const [activeSubmapIndex, setActiveSubmapIndex] = useState<number | null>(null);
 
   // Check for death
   if (character.hp <= 0 && !showDeath && character.name) {
@@ -445,15 +447,20 @@ function AppContent() {
 
   // Navigation handlers
   const handleEnterDungeon = () => {
+    setActiveBiomeMapId(null);
+    setActiveSubmapIndex(null);
     enterMapSystem();
   };
 
   const handleEnterCombat = (mapId: MapId, nodeId: string) => {
+    setActiveBiomeMapId(mapId);
+    setActiveSubmapIndex(gameState.maps[mapId].nodes.find(node => node.id === nodeId)?.area ?? null);
     selectMapNode(mapId, nodeId);
   };
 
   const handleExitMapSystem = () => {
     setActiveBiomeMapId(null);
+    setActiveSubmapIndex(null);
     exitMapSystem();
   };
 
@@ -640,7 +647,7 @@ function AppContent() {
                   <AnimatePresence>
                     {currentNodeId && currentMapId && (
                       <motion.div
-                        key="combat-overlay"
+                        key={`combat-overlay-${activeEnemy?.encounterId || currentNodeId}`}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -649,6 +656,7 @@ function AppContent() {
                         <Dungeon 
                           mapId={currentMapId}
                           nodeId={currentNodeId}
+                          encounterId={activeEnemy?.encounterId}
                           onExit={handleExitCombat} 
                         />
                       </motion.div>
@@ -665,6 +673,8 @@ function AppContent() {
                         {activeBiomeMapId ? (
                           <MapSystem 
                             initialMapId={activeBiomeMapId}
+                            initialSubmapIndex={activeSubmapIndex}
+                            onSubmapChange={setActiveSubmapIndex}
                             onEnterCombat={handleEnterCombat} 
                             onExit={() => {
                               setActiveBiomeMapId(null);
@@ -674,7 +684,7 @@ function AppContent() {
                           />
                         ) : (
                           <WorldMap
-                            onSelectMap={(mapId) => setActiveBiomeMapId(mapId)}
+                            onSelectMap={(mapId) => { setActiveBiomeMapId(mapId); setActiveSubmapIndex(null); }}
                             onNavigateToCastle={() => {
                               setActiveBiomeMapId(null);
                               handleExitMapSystem();

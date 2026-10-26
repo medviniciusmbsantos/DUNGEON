@@ -1674,7 +1674,7 @@ export function useGameState() {
       const eventType = node.isBoss ? 'combat' : rollDungeonEventType();
 
       if (eventType === 'combat') {
-        const spawnedEnemy = spawnMonster({ stage: node.stage, spawns: node.possibleSpawns });
+        const spawnedEnemy = spawnMonster({ stage: node.stage, spawns: node.possibleSpawns, isBoss: node.isBoss });
         const updatedNodes = [...map.nodes];
         updatedNodes[nodeIndex] = { ...node, currentEnemy: spawnedEnemy };
         const updatedMaps = { ...prev.maps, [mapId]: { ...map, nodes: updatedNodes } };
@@ -1823,7 +1823,7 @@ export function useGameState() {
       }
       
       const node = map.nodes[nodeIndex];
-      const stageData = { stage: node.stage, spawns: node.possibleSpawns };
+      const stageData = { stage: node.stage, spawns: node.possibleSpawns, isBoss: node.isBoss };
       
       // Spawn enemy using weighted random from spreadsheet data
       const spawnedEnemy = spawnMonster(stageData);
@@ -2856,9 +2856,10 @@ export function useGameState() {
       
       // FALLBACK: Spawn if missing (should already be spawned by selectMapNode)
       if (!spawnedEnemy) {
-        spawnedEnemy = spawnMonster({ stage: currentNode.stage, spawns: currentNode.possibleSpawns });
+        spawnedEnemy = spawnMonster({ stage: currentNode.stage, spawns: currentNode.possibleSpawns, isBoss: currentNode.isBoss });
       }
 
+      if (spawnedEnemy.encounterId && prev.combat?.encounterId === spawnedEnemy.encounterId) return prev;
       const equippedSpecial = prev.character.equipped.specialAttack;
       
       // Use exact HP from spawned enemy (from spreadsheet)
@@ -2881,7 +2882,7 @@ export function useGameState() {
           },
         },
         combat: {
-          encounterId: crypto.randomUUID(),
+          encounterId: spawnedEnemy.encounterId || crypto.randomUUID(),
           playerHp: lobbyHp, // Combat HP starts at lobby HP
           bossHp: enemyHp,
           maxPlayerHp: lobbyMaxHp,

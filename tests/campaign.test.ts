@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applyClassBonuses, canEquipClass, classWeapon, entryBlock, expandCampaignMap, finishCampaignNode, marketCatalog, marketBlock, transactMarket, migrateCampaignMaps, submapDays, submapEnergy, submapCombatCount, routeProgress, restAtCamp, MARKET_PRICES, ARMOR_PRICES, exchangeFee } from '../src/lib/campaign.ts';
+import { applyClassBonuses, canEquipClass, classWeapon, entryBlock, expandCampaignMap, finishCampaignNode, marketCatalog, marketBlock, transactMarket, migrateCampaignMaps, submapDays, submapEnergy, submapCombatCount, submapEncounter, routeProgress, restAtCamp, MARKET_PRICES, ARMOR_PRICES, exchangeFee } from '../src/lib/campaign.ts';
 import { dismantleBlock, dismantleEquipment, dismantleYield, forgeCost, refineEquipment } from '../src/lib/forge.ts';
 import type { GameMap, GameState, MapId } from '../src/types/game.ts';
 
@@ -15,7 +15,7 @@ function state(): GameState {
     maps: maps(), character: { heroClass: 'mage', level: 50, equipped: {}, hp: 100, maxHp: 100, energy: 8, maxEnergy: 10 },
     inventory: { items: [], gems: [], specialAttacks: [], consumables: { protectionStones: 0 } },
     economy: { coins: 1000000, totalCoinsSpent: 0, totalCoinsEarned: 0, shards: { common: 20, rare: 20, epic: 20, legendary: 20, mythic: 20 } },
-    totalBossesDefeated: 15, currentMapId: 'map1', currentNodeId: 'map1-stage1', lootOverlay: null,
+    totalBossesDefeated: 15, currentMapId: 'map1', currentNodeId: 'map1-submap1', lootOverlay: null,
     combat: { encounterId: 'encounter-1', bossHp: 0, playerHp: 80, isActive: false },
   } as unknown as GameState;
 }
@@ -28,57 +28,68 @@ test('successive submaps need 24, 40, 56, 80, 112 energy at eight daily', () => 
   assert.deepEqual([submapEnergy('map1',0),submapEnergy('map1',1),submapEnergy('map1',2),submapEnergy('map2',0),submapEnergy('map2',1)], [24,40,56,80,112]);
   for (const m of Object.values(maps())) for (let area=0;area<3;area++) assert.equal(routeProgress(m,area).total,submapCombatCount(m.id,area));
 });
-test('the route reserves energy for original rest/events and reaches its boss without a date gate', () => {
-  let s=state();s.totalBossesDefeated=0;
-  let spent=0;
-  for (const node of s.maps.map1.nodes.slice(0,4)) {
-    for(let i=0;i<node.requiredWins!;i++) {
-      assert.equal(entryBlock(s.maps.map1,s.maps.map1.nodes.find(n=>n.id===node.id)!),null);
-      s=win(s,'map1',node.id);spent++;
+test('each region has exactly three real submaps, each with one final boss', () => {
+  for(const map of Object.values(maps())){
+    assert.equal(map.nodes.length,3);assert.equal(map.submaps!.length,3);
+    assert.equal(new Set(map.submaps!.map(submap=>submap.id)).size,3);
+    for(const submap of map.submaps!){
+      const encounters=Array.from({length:submap.encounterCount},(_,index)=>submapEncounter(map.id,submap.index,index));
+      assert.equal(encounters.filter(e=>e.isBoss).length,1);
+      assert.equal(encounters.at(-1)!.spawns[0].name,submap.bossName);
+      assert.ok(encounters.slice(0,-1).every(e=>!e.isBoss));
     }
   }
-  assert.equal(spent,15);assert.equal(s.maps.map1.nodes[4].isUnlocked,true);
-  assert.equal(entryBlock(s.maps.map1,s.maps.map1.nodes[4]),null);
-  s=win(s,'map1',s.maps.map1.nodes[4].id);spent++;
-  assert.equal(spent,16);assert.equal(routeProgress(s.maps.map1,0).completed,16);
-  assert.equal(s.maps.map1.nodes[5].isUnlocked,true);assert.equal(s.maps.map2.isUnlocked,false);
 });
-test('partial stage progress persists and unlocks only after the required wins', () => {
-  let s=state();s=win(s,'map1','map1-stage1');
-  assert.equal(s.maps.map1.nodes[0].wins,1);assert.equal(s.maps.map1.nodes[0].isCompleted,false);
+test('a continuous submap changes enemies after every victory and unlocks the next only after its boss', () => {
+  let s=state();s.totalBossesDefeated=0;
+  const node=s.maps.map1.nodes[0];
+  const firstName=node.possibleSpawns[0].name;
+  s=win(s,'map1',node.id);
+  assert.notEqual(s.maps.map1.nodes[0].possibleSpawns[0].name,firstName);
   assert.equal(s.maps.map1.nodes[1].isUnlocked,false);
-  const loaded=migrateCampaignMaps(JSON.parse(JSON.stringify(s.maps)),maps());
-  assert.equal(loaded.map1.nodes[0].wins,1);assert.equal(loaded.map1.nodes[1].isUnlocked,false);
-  s={...s,maps:loaded};for(let i=1;i<4;i++)s=win(s,'map1','map1-stage1');
+  for(let i=1;i<node.requiredWins!-1;i++)s=win(s,'map1',node.id);
+  assert.equal(s.maps.map1.nodes[0].isBoss,true);
+  assert.equal(s.maps.map1.nodes[0].isCompleted,false);
+  assert.equal(s.maps.map1.nodes[1].isUnlocked,false);
+  s=win(s,'map1',node.id);
   assert.equal(s.maps.map1.nodes[0].isCompleted,true);assert.equal(s.maps.map1.nodes[1].isUnlocked,true);
+  assert.equal(s.maps.map2.isUnlocked,false);assert.equal(s.totalBossesDefeated,1);
+});
+test('continuous exploration progress persists without nested stages', () => {
+  let s=state();for(let i=0;i<6;i++)s=win(s,'map1','map1-submap1');
+  const loaded=migrateCampaignMaps(JSON.parse(JSON.stringify(s.maps)),maps());
+  assert.equal(loaded.map1.nodes.length,3);assert.equal(loaded.map1.nodes[0].wins,6);
+  assert.equal(loaded.map1.nodes[0].possibleSpawns[0].name,submapEncounter('map1',0,6).spawns[0].name);
+  assert.equal(loaded.map1.nodes[1].isUnlocked,false);
 });
 test('one combat cannot be claimed twice, including in a partial stage', () => {
-  const s=win(state(),'map1','map1-stage1','unique');
-  assert.equal(finishCampaignNode(s,'map1','map1-stage1'),s);
+  const s=win(state(),'map1','map1-submap1','unique');
+  assert.equal(finishCampaignNode(s,'map1','map1-submap1'),s);
   assert.equal(s.maps.map1.nodes[0].wins,1);
 });
 test('a loss, active combat, unknown encounter or wrong stage cannot advance', () => {
   const s=state();
   for(const combat of [null,{...s.combat!,bossHp:1},{...s.combat!,playerHp:0},{...s.combat!,isActive:true},{...s.combat!,encounterId:undefined}]) {
-    const blocked={...s,combat};assert.equal(finishCampaignNode(blocked,'map1','map1-stage1'),blocked);
+    const blocked={...s,combat};assert.equal(finishCampaignNode(blocked,'map1','map1-submap1'),blocked);
   }
-  assert.equal(finishCampaignNode(s,'map1','map1-stage2'),s);
+  assert.equal(finishCampaignNode(s,'map1','map1-submap2'),s);
 });
-test('a completed stage replay cannot mint first-clear rewards', () => {
-  let s=state();s.maps.map1.nodes[4]={...s.maps.map1.nodes[4],isUnlocked:true};
-  s=win(s,'map1','map1-stage5');const count=s.inventory.items.length;
-  assert.equal(count,1);const repeated=win(s,'map1','map1-stage5');assert.equal(repeated.inventory.items.length,count);
+test('a completed boss replay cannot mint first-clear rewards', () => {
+  let s=state();const node=s.maps.map1.nodes[0];
+  node.wins=node.requiredWins!-1;node.isBoss=true;
+  s=win(s,'map1',node.id);const count=s.inventory.items.length;
+  assert.equal(count,1);assert.equal(win(s,'map1',node.id).inventory.items.length,count);
 });
-test('every later encounter pool is strictly stronger than all earlier pools', () => {
-  let maxHp=0,maxDamage=0,maxDefense=0;
-  const names=new Set<string>();
-  for(const m of Object.values(maps()))for(const node of m.nodes) {
-    assert.ok(Math.min(...node.possibleSpawns.map(e=>e.hp))>maxHp);
-    assert.ok(Math.min(...node.possibleSpawns.map(e=>e.damageMin))>maxDamage);
-    assert.ok(Math.min(...node.possibleSpawns.map(e=>e.defense))>=maxDefense);
-    for(const enemy of node.possibleSpawns){assert.equal(names.has(enemy.name),false);names.add(enemy.name);}
-    maxHp=Math.max(...node.possibleSpawns.map(e=>e.hp));maxDamage=Math.max(...node.possibleSpawns.map(e=>e.damageMin));maxDefense=Math.max(...node.possibleSpawns.map(e=>e.defense));
-    assert.equal(node.possibleSpawns.reduce((sum,e)=>sum+e.chance,0),100);
+test('each successive encounter is at least as healthy and strictly more damaging than earlier pools', () => {
+  let maxHp=0,maxDamage=0,maxDefense=0;const names=new Set<string>();
+  for(const map of Object.values(maps()))for(const submap of map.submaps!)for(let index=0;index<submap.encounterCount;index++){
+    const pool=submapEncounter(map.id,submap.index,index).spawns;
+    assert.ok(Math.min(...pool.map(e=>e.hp))>=maxHp);
+    assert.ok(Math.min(...pool.map(e=>e.damageMin))>maxDamage);
+    assert.ok(Math.min(...pool.map(e=>e.defense))>=maxDefense);
+    for(const enemy of pool){assert.equal(names.has(enemy.name),false);names.add(enemy.name);}
+    maxHp=Math.max(...pool.map(e=>e.hp));maxDamage=Math.max(...pool.map(e=>e.damageMin));maxDefense=Math.max(...pool.map(e=>e.defense));
+    assert.equal(pool.reduce((sum,e)=>sum+e.chance,0),100);
   }
 });
 test('three classes have equivalent expected damage and effective HP across equipment tiers', () => {
@@ -97,11 +108,20 @@ test('exclusive weapons reject other classes; armor remains universal', () => {
     assert.equal(canEquipClass({heroClass:hero},marketCatalog(hero)[5].item),true);
   }
 });
-test('legacy cleared stages are preserved without introducing date waits', () => {
-  const old=maps();old.map1.campaignVersion=2;
-  for(const n of old.map1.nodes.slice(0,5)){n.isCompleted=true;delete n.requiredWins;delete n.wins;}
+test('migration converts old nested stages into continuous progress without losing completed bosses', () => {
+  const old=maps();old.map1.campaignVersion=4;
+  const template=old.map1.nodes[0];
+  old.map1.nodes=Array.from({length:15},(_,i)=>({...template,id:`map1-stage${i+1}`,area:Math.floor(i/5),isBoss:i%5===4,isCompleted:i<5,requiredWins:i%5===4?1:4,wins:i===5?2:0}));
   const migrated=migrateCampaignMaps(old,maps());
-  assert.equal(routeProgress(migrated.map1,0).completed,16);assert.equal(migrated.map1.nodes[5].isUnlocked,true);
+  assert.equal(migrated.map1.nodes.length,3);assert.equal(migrated.map1.nodes[0].isCompleted,true);
+  assert.equal(migrated.map1.nodes[1].isUnlocked,true);assert.equal(migrated.map1.nodes[1].wins,2);
+  assert.equal(migrated.map1.nodes[2].isUnlocked,false);
+});
+test('old stage wins alone cannot manufacture a boss clear during migration', () => {
+  const old=maps();old.map1.campaignVersion=4;
+  old.map1.nodes=[{...old.map1.nodes[0],requiredWins:100,wins:90,isCompleted:false,isBoss:false}];
+  const migrated=migrateCampaignMaps(old,maps());
+  assert.equal(migrated.map1.nodes[0].isCompleted,false);assert.equal(migrated.map1.nodes[0].wins,15);assert.equal(migrated.map1.nodes[0].isBoss,true);
 });
 test('all 15 submaps complete sequentially at their declared energy budgets', () => {
   let s=state();s.totalBossesDefeated=0;let victories=0;let expected=0;
@@ -208,4 +228,10 @@ test('a protection stone preserves crystals exactly once on a failed refinement'
   assert.equal(protectedState.inventory.consumables!.protectionStones,0);
   const unprotected=refineEquipment(protectedState,item.id,.99);
   assert.equal(unprotected.economy.shards.common,protectedState.economy.shards.common-cost.shards);
+});
+test('a completed fight cannot advance a different newly selected encounter', () => {
+  const s=state();s.maps.map1.nodes[0].currentEnemy={encounterId:'new-fight'} as never;
+  assert.equal(finishCampaignNode(s,'map1','map1-submap1'),s);
+  s.combat!.encounterId='new-fight';
+  assert.equal(finishCampaignNode(s,'map1','map1-submap1').maps.map1.nodes[0].wins,1);
 });

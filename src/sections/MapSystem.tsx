@@ -1,6 +1,6 @@
 import { assetUrl } from '@/lib/assets';
-import { entryBlock, REGIONS, submapDays, submapEnergy, routeProgress } from '@/lib/campaign';
-import { useEffect, useMemo, useState } from 'react';
+import { entryBlock, submapDays, submapEnergy, routeProgress } from '@/lib/campaign';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Lock,
@@ -14,13 +14,12 @@ import {
   Heart,
   ScrollText,
   Check,
-  ChevronUp,
   Package
 } from 'lucide-react';
 import { useGame } from '@/context/GameContext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import type { MapId, MapNode } from '@/types/game';
+import type { MapId } from '@/types/game';
 import {
   Dialog,
   DialogContent,
@@ -32,6 +31,8 @@ interface MapSystemProps {
   onEnterCombat: (mapId: MapId, nodeId: string) => void;
   onExit: () => void;
   initialMapId?: MapId;
+  initialSubmapIndex?: number | null;
+  onSubmapChange?: (index: number | null) => void;
   onBackToWorldMap?: () => void;
 }
 
@@ -93,38 +94,29 @@ const difficultyLabels: Record<string, string> = {
   boss: 'BOSS',
 };
 
-export function MapSystem({ onEnterCombat, onExit, initialMapId = 'map1', onBackToWorldMap }: MapSystemProps) {
+export function MapSystem({ onEnterCombat, onExit, initialMapId = 'map1', initialSubmapIndex = null, onSubmapChange, onBackToWorldMap }: MapSystemProps) {
   const { gameState } = useGame();
   const { maps, character } = gameState;
   const [selectedMapId, setSelectedMapId] = useState<MapId>(initialMapId);
-  const [selectedArea, setSelectedArea] = useState(() => maps[initialMapId].nodes.find(n => n.isUnlocked && !n.isCompleted)?.area || 0);
+  const [selectedArea, setSelectedArea] = useState<number | null>(initialSubmapIndex);
   const [showEnergyWarning, setShowEnergyWarning] = useState(false);
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showMissions, setShowMissions] = useState(false);
   const [showEnemies, setShowEnemies] = useState(false);
   const [showRewardsModal, setShowRewardsModal] = useState(false);
 
   const currentMap = maps[selectedMapId];
-  const areaNodes = currentMap.nodes.filter(n => (n.area || 0) === selectedArea);
+  const areaIndex = selectedArea ?? 0;
+  const areaNodes = currentMap.nodes.filter(n => (n.area || 0) === areaIndex);
   const theme = mapThemes[selectedMapId];
   const mapIds: MapId[] = ['map1', 'map2', 'map3', 'map4', 'map5'];
   const currentMapIndex = mapIds.indexOf(selectedMapId);
 
-  useEffect(() => {
-    const firstAvailable = currentMap.nodes.filter(n => (n.area || 0) === selectedArea).find(n => n.isUnlocked && !n.isCompleted);
-    const firstUnlocked = currentMap.nodes.filter(n => (n.area || 0) === selectedArea).find(n => n.isUnlocked);
-    setSelectedNodeId(firstAvailable?.id || firstUnlocked?.id || currentMap.nodes.find(n => (n.area || 0) === selectedArea)?.id || null);
-  }, [selectedMapId, selectedArea, currentMap.nodes]);
-
-  const selectedNode = useMemo(() => {
-    if (!selectedNodeId) return currentMap.nodes.find(n => n.isUnlocked) || currentMap.nodes[0] || null;
-    return currentMap.nodes.find(n => n.id === selectedNodeId) || currentMap.nodes[0] || null;
-  }, [currentMap.nodes, selectedNodeId]);
-
-  const handleSelectStage = (node: MapNode) => {
-    if (!node.isUnlocked) return;
-    setSelectedNodeId(node.id);
-  };
+  const chooseSubmap = (index: number | null) => { setSelectedArea(index); onSubmapChange?.(index); };
+  const selectedNode = areaNodes[0];
+  const currentSubmap = currentMap.submaps?.find(submap => submap.index === areaIndex);
+  const progress = routeProgress(currentMap, areaIndex);
+  const encounterNumber = Math.min((selectedNode?.wins || 0) + 1, selectedNode?.requiredWins || 1);
+  const fraction = Math.min(1, (selectedNode?.wins || 0) / Math.max(1, (selectedNode?.requiredWins || 1) - 1));
 
   const handleStartStage = () => {
     if (!selectedNode) return;
@@ -138,17 +130,6 @@ export function MapSystem({ onEnterCombat, onExit, initialMapId = 'map1', onBack
     onEnterCombat(selectedMapId, selectedNode.id);
   };
 
-  // Node positions along a smooth organic curved trail
-  const nodePositions = useMemo(() => {
-    return [
-      { nodeId: areaNodes[0]?.id || 'node1', x: 18, y: 55 },
-      { nodeId: areaNodes[1]?.id || 'node2', x: 36, y: 54 },
-      { nodeId: areaNodes[2]?.id || 'node3', x: 53, y: 48 },
-      { nodeId: areaNodes[3]?.id || 'node4', x: 69, y: 42 },
-      { nodeId: areaNodes[4]?.id || 'node5', x: 85, y: 35 }, // Boss Final node
-    ];
-  }, [areaNodes]);
-
   const energyCost = 1;
 
   const stagePossibleRewards = useMemo(() => {
@@ -160,6 +141,25 @@ export function MapSystem({ onEnterCombat, onExit, initialMapId = 'map1', onBack
       { id: 'book', name: 'Grimório Raro', icon: '📖', rarity: 'Raro' },
     ];
   }, [selectedNode]);
+
+  if (selectedArea === null) return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-50 bg-[#0a0a0f] overflow-y-auto">
+      <div className="max-w-md mx-auto min-h-screen px-3 py-3 space-y-4 pb-8">
+        <button onClick={onBackToWorldMap || onExit} className="flex items-center gap-1 text-yellow-400 font-cinzel text-sm"><ChevronLeft className="h-5 w-5" />Mapa Mundo</button>
+        <header className="text-center py-2"><h1 className="font-cinzel text-2xl font-black" style={{ color: theme.color }}>{currentMap.name}</h1><p className="text-sm text-gray-400 mt-2">Escolha um dos 3 submapas para explorar</p></header>
+        {(currentMap.submaps || []).map(submap => {
+          const node = currentMap.nodes.find(n => n.id === submap.id)!;
+          const locked = !currentMap.isUnlocked || !node.isUnlocked;
+          const completed = node.isCompleted;
+          return <button key={submap.id} data-submap-entry={submap.id} disabled={locked} onClick={() => chooseSubmap(submap.index)} className={cn('relative block w-full overflow-hidden rounded-2xl border text-left shadow-xl', locked ? 'border-white/10 opacity-60 cursor-not-allowed' : 'border-purple-500/40 hover:border-purple-400')}>
+            <div className="absolute inset-0 bg-cover" style={{ backgroundImage: `url(${theme.bgImage})`, backgroundPosition: `${25 + submap.index * 25}% 50%` }} />
+            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/85 to-black/40" />
+            <div className="relative p-5 space-y-2"><div className="flex items-center justify-between gap-3"><h2 className="text-lg font-cinzel font-bold text-white">{submap.name}</h2>{locked ? <Lock className="w-5 h-5 text-gray-400" /> : completed ? <Check className="w-5 h-5 text-emerald-400" /> : <Swords className="w-5 h-5 text-purple-300" />}</div><p className="text-xs text-amber-300 flex items-center gap-2"><Crown className="w-4 h-4 shrink-0" />Boss: {submap.bossName}</p><p className="text-xs text-gray-300">{node.wins || 0}/{submap.encounterCount} encontros vencidos · ~{submapDays(selectedMapId, submap.index)} dias</p><p className="text-xs text-purple-200">{locked ? 'Conclua o submapa anterior para entrar' : completed ? 'Submapa concluído · Revisitar' : 'Entrar no submapa'}</p></div>
+          </button>;
+        })}
+      </div>
+    </motion.div>
+  );
 
   return (
     <motion.div
@@ -174,11 +174,11 @@ export function MapSystem({ onEnterCombat, onExit, initialMapId = 'map1', onBack
         <div className="flex items-center justify-between pt-1 pb-1">
           {/* Voltar */}
           <button
-            onClick={onBackToWorldMap || onExit}
+            onClick={() => chooseSubmap(null)}
             className="flex items-center gap-0.5 text-yellow-400 hover:text-yellow-300 transition-colors text-sm font-medium font-cinzel"
           >
             <ChevronLeft className="w-5 h-5" />
-            <span>Mapa Mundo</span>
+            <span>Submapas</span>
           </button>
 
           {/* Title Stacked with Map Switcher Arrows (< Title >) */}
@@ -186,7 +186,7 @@ export function MapSystem({ onEnterCombat, onExit, initialMapId = 'map1', onBack
             <button
               onClick={() => {
                 if (currentMapIndex > 0) setSelectedMapId(mapIds[currentMapIndex - 1]);
-                  setSelectedArea(0);
+                  chooseSubmap(null);
               }}
               disabled={currentMapIndex === 0}
               className="p-1 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
@@ -200,12 +200,12 @@ export function MapSystem({ onEnterCombat, onExit, initialMapId = 'map1', onBack
                 className="text-xl sm:text-2xl font-black font-cinzel tracking-wider uppercase leading-tight drop-shadow-[0_0_12px_rgba(21,128,61,0.5)]"
                 style={{ color: theme.color }}
               >
-                {theme.line1}<br />{theme.line2}
+                {currentSubmap?.name || currentMap.name}
               </h1>
               <div className="flex items-center justify-center gap-1.5 mt-0.5">
                 <div className="w-4 h-[1px] bg-[#2d2d44]" />
                 <span className="text-[10px] text-gray-400 font-mono tracking-widest uppercase">
-                  Mapa {selectedMapId.replace('map', '')} de 5
+                  {currentMap.name}
                 </span>
                 <div className="w-4 h-[1px] bg-[#2d2d44]" />
               </div>
@@ -215,7 +215,7 @@ export function MapSystem({ onEnterCombat, onExit, initialMapId = 'map1', onBack
               onClick={() => {
                 if (currentMapIndex < mapIds.length - 1 && maps[mapIds[currentMapIndex + 1]]?.isUnlocked) {
                   setSelectedMapId(mapIds[currentMapIndex + 1]);
-                  setSelectedArea(0);
+                  chooseSubmap(null);
                 }
               }}
               disabled={currentMapIndex === mapIds.length - 1 || !maps[mapIds[currentMapIndex + 1]]?.isUnlocked}
@@ -236,13 +236,10 @@ export function MapSystem({ onEnterCombat, onExit, initialMapId = 'map1', onBack
           </button>
         </div>
 
-        <section className="rounded-xl border border-purple-500/30 bg-[#101018] p-3 space-y-3">
-          <p className="text-sm text-purple-200">{routeProgress(currentMap, selectedArea).completed}/{routeProgress(currentMap, selectedArea).total} vitórias · meta ~{submapEnergy(selectedMapId, selectedArea)} energias · {currentMap.nodes.filter(n => n.isCompleted).length}/15 etapas</p>
-          <p className="text-xs text-gray-400">Vença os encontros para alcançar o boss. A meta inclui uma reserva para descanso e eventos, mantendo as regras originais de energia.</p>
-          <div className="grid grid-cols-3 gap-2">{REGIONS[Number(selectedMapId.slice(3)) - 1].map((name, index) => <button key={name} onClick={() => setSelectedArea(index)} className={`rounded-lg border p-2 text-left text-xs ${selectedArea === index ? 'border-purple-400 bg-purple-500/20 text-white' : 'border-white/10 text-gray-400'}`}>
-            <span className="block font-bold">{index + 1}. {name}</span>
-            <span>{routeProgress(currentMap, index).completed}/{routeProgress(currentMap, index).total} vitórias · ~{submapDays(selectedMapId, index)} dias</span>
-          </button>)}</div>
+        <section className="rounded-xl border border-purple-500/30 bg-[#101018] p-3 space-y-2">
+          <p className="text-sm text-purple-200">{progress.completed}/{progress.total} encontros vencidos · meta ~{submapEnergy(selectedMapId, areaIndex)} energias</p>
+          <div className="h-1.5 rounded-full bg-white/5 overflow-hidden"><div className="h-full bg-purple-500" style={{ width: `${progress.completed / progress.total * 100}%` }} /></div>
+          <p className="text-xs text-gray-400">Explore o submapa e avance a cada vitória até enfrentar {currentSubmap?.bossName}.</p>
         </section>
 
         {/* ═══════ STATS BAR (VIDA & ENERGIA) ═══════ */}
@@ -328,125 +325,8 @@ export function MapSystem({ onEnterCombat, onExit, initialMapId = 'map1', onBack
               />
             </svg>
 
-            {/* STAGE NODES ON MAP */}
-            {areaNodes.map((node, idx) => {
-              const pos = nodePositions[idx] || { x: 20 + idx * 15, y: 50 };
-              const isSelected = selectedNode?.id === node.id;
-              const isLocked = !node.isUnlocked;
-              const isCompleted = node.isCompleted && node.isUnlocked;
-              const isBoss = node.isBoss;
-
-              return (
-                <div
-                  key={node.id}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 select-none z-10"
-                  style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
-                >
-                  {isBoss ? (
-                    /* BOSS FINAL PORTAL NODE */
-                    <button
-                      onClick={() => handleSelectStage(node)}
-                      disabled={isLocked}
-                      className={cn(
-                        "flex flex-col items-center group transition-transform duration-200 relative",
-                        isLocked ? "cursor-not-allowed opacity-75" : "cursor-pointer hover:scale-105",
-                        isSelected && "scale-110 z-30"
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "w-14 h-18 rounded-xl border-2 flex flex-col items-center justify-center p-1 relative overflow-hidden backdrop-blur-md transition-all shadow-xl",
-                          /* Selected State (Darker Blue) */
-                          isSelected && "border-blue-400 bg-blue-950/95 ring-4 ring-blue-500/60 shadow-[0_0_25px_rgba(37,99,235,0.8)] text-blue-100",
-                          /* Completed State (Darker Forest Green) */
-                          !isSelected && isCompleted && "border-emerald-600 bg-emerald-950/90 text-emerald-200 shadow-[0_0_15px_rgba(6,95,70,0.6)]",
-                          /* Unlocked & Uncompleted State */
-                          !isSelected && !isCompleted && !isLocked && "border-purple-400 bg-purple-950/80 text-purple-200 ring-2 ring-purple-400/40",
-                          /* Locked State */
-                          isLocked && "border-purple-900/60 bg-[#120a1c]/90 text-purple-400/60"
-                        )}
-                      >
-                        <Crown className={cn("w-4 h-4 mb-0.5", isSelected ? "text-blue-300" : isLocked ? "text-purple-500/50" : "text-purple-300")} />
-                        <span className="text-[7.5px] font-black uppercase font-cinzel text-center leading-tight">
-                          BOSS<br />DA ÁREA
-                        </span>
-                        {isLocked ? (
-                          <div className="mt-0.5 bg-black/60 rounded-full p-0.5 border border-purple-500/30">
-                            <Lock className="w-2.5 h-2.5 text-purple-400/80" />
-                          </div>
-                        ) : isCompleted ? (
-                          <Check className="w-3 h-3 text-emerald-400 mt-0.5" />
-                        ) : null}
-                      </div>
-
-                      {/* Selection Arrow Below Boss Node - Strictly Centered */}
-                      {isSelected && (
-                        <div className="absolute top-full mt-1.5 left-1/2 -translate-x-1/2 w-5 h-5 flex items-center justify-center z-30 pointer-events-none">
-                          <motion.div
-                            animate={{ y: [0, 3, 0] }}
-                            transition={{ duration: 1, repeat: Infinity }}
-                            className="text-blue-400 flex items-center justify-center"
-                          >
-                            <ChevronUp className="w-5 h-5 drop-shadow-[0_0_8px_rgba(59,130,246,0.9)]" />
-                          </motion.div>
-                        </div>
-                      )}
-                    </button>
-                  ) : (
-                    /* REGULAR COMPACT STAGE NODE (1, 2, 3, 4) */
-                    <div className="flex flex-col items-center relative">
-                      <button
-                        onClick={() => handleSelectStage(node)}
-                        disabled={isLocked}
-                        className={cn(
-                          "w-10 h-10 rounded-full border-2 flex items-center justify-center font-black text-base transition-all duration-200 shadow-lg relative",
-
-                          /* Selected State (Darker Blue) */
-                          isSelected && "border-blue-300 bg-blue-700 text-white font-black ring-4 ring-blue-600/60 shadow-[0_0_22px_rgba(29,78,216,0.95)] scale-110 z-30",
-
-                          /* Completed State (Darker Forest Green) */
-                          !isSelected && isCompleted && "border-emerald-600 bg-emerald-900 text-emerald-100 shadow-[0_0_12px_rgba(6,95,70,0.6)]",
-
-                          /* Unlocked & Uncompleted State */
-                          !isSelected && !isCompleted && !isLocked && "border-slate-500/70 bg-gray-900/90 text-slate-200 hover:scale-105",
-
-                          /* Locked State */
-                          isLocked && "border-gray-700 bg-gray-900/90 text-gray-500 cursor-not-allowed opacity-75"
-                        )}
-                      >
-                        {isCompleted && !isSelected ? (
-                          <div className="flex items-center justify-center gap-0.5">
-                            <span>{node.stage}</span>
-                          </div>
-                        ) : (
-                          <span>{node.stage}</span>
-                        )}
-
-                        {/* Selection Arrow Below Circle Node - Strictly Centered */}
-                        {isSelected && (
-                          <div className="absolute top-full mt-1.5 left-1/2 -translate-x-1/2 w-5 h-5 flex items-center justify-center z-30 pointer-events-none">
-                            <motion.div
-                              animate={{ y: [0, 3, 0] }}
-                              transition={{ duration: 1, repeat: Infinity }}
-                              className="text-blue-400 flex items-center justify-center"
-                            >
-                              <ChevronUp className="w-5 h-5 drop-shadow-[0_0_8px_rgba(59,130,246,0.9)]" />
-                            </motion.div>
-                          </div>
-                        )}
-                      </button>
-
-                      {/* Locked Badge Icon Below */}
-                      {isLocked && (
-                        <div className="mt-1">
-                          <Lock className="w-3 h-3 text-gray-500" />
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            {!selectedNode?.isBoss && !selectedNode?.isCompleted && <div data-current-encounter className="absolute -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center gap-2" style={{ left: `${18 + 60 * fraction}%`, top: `${55 - 20 * fraction}%` }}><span className="w-10 h-10 rounded-full border-2 border-blue-300 bg-blue-900 flex items-center justify-center font-bold ring-4 ring-blue-500/30">{encounterNumber}</span><span className="text-[9px] px-2 py-1 rounded bg-black/80 text-blue-100">Você está aqui</span></div>}
+            <button data-final-boss onClick={handleStartStage} disabled={!selectedNode?.isBoss || (!gameState.settings?.infiniteEnergy && character.energy < energyCost)} title={currentSubmap?.bossName} className={cn('absolute left-[85%] top-[35%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 border-2 rounded-xl p-2 z-10', selectedNode?.isBoss ? 'border-purple-400 bg-purple-950 text-purple-100 ring-2 ring-purple-500/40' : 'border-purple-900 bg-black/80 text-purple-400/70')}><Crown className="w-5 h-5" /><span className="text-[9px] font-cinzel">BOSS FINAL</span>{selectedNode?.isCompleted ? <Check className="w-3 h-3 text-emerald-400" /> : !selectedNode?.isBoss ? <Lock className="w-3 h-3" /> : null}</button>
 
             {/* Bottom Right Overlay: "Ver inimigos" */}
             <button
@@ -466,14 +346,14 @@ export function MapSystem({ onEnterCombat, onExit, initialMapId = 'map1', onBack
             {/* LEFT COLUMN: Title, Difficulty, Description */}
             <div className="space-y-1.5">
               <h3 className="text-base font-black font-cinzel text-white uppercase tracking-wide">
-                {selectedNode?.name || 'Escolha uma etapa'}
+                {selectedNode?.possibleSpawns[0]?.name || currentSubmap?.name}
               </h3>
-              <p className="text-xs text-cyan-300">{selectedNode?.wins || 0}/{selectedNode?.requiredWins || 1} vitórias nesta etapa</p>
+              <p className="text-xs text-cyan-300">Encontro {encounterNumber} de {progress.total}</p>
               <p className="text-[11px] font-bold text-yellow-400">
                 Dificuldade: {difficultyLabels[selectedNode?.difficulty || 'medium']}
               </p>
               <p className="text-[10px] text-gray-400 leading-snug pt-0.5">
-                {selectedNode ? entryBlock(currentMap, selectedNode) || 'Explore, derrote inimigos e prepare-se para o boss desta área.' : 'Selecione uma etapa.'}
+                {selectedNode ? entryBlock(currentMap, selectedNode) || 'Continue explorando este submapa até alcançar seu boss final.' : 'Explore este submapa.'}
               </p>
             </div>
 
@@ -532,7 +412,7 @@ export function MapSystem({ onEnterCombat, onExit, initialMapId = 'map1', onBack
                     )}
                   >
                     <Swords className="w-3.5 h-3.5" />
-                    <span>INICIAR ETAPA</span>
+                    <span>{selectedNode?.isBoss ? 'ENFRENTAR BOSS' : 'EXPLORAR SUBMAPA'}</span>
                   </Button>
                 </div>
               </div>
@@ -591,7 +471,7 @@ export function MapSystem({ onEnterCombat, onExit, initialMapId = 'map1', onBack
           <DialogHeader>
             <DialogTitle className="font-cinzel text-base flex items-center gap-2">
               <Skull className="w-4 h-4 text-red-400" />
-              Inimigos — {selectedNode?.isBoss ? 'Boss da área' : `Etapa ${selectedNode?.stage ?? 1}`}
+              Inimigos — {selectedNode?.isBoss ? 'Boss da área' : `Encontro ${encounterNumber}`}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
@@ -623,7 +503,7 @@ export function MapSystem({ onEnterCombat, onExit, initialMapId = 'map1', onBack
           <DialogHeader>
             <DialogTitle className="font-cinzel text-base flex items-center gap-2">
               <Package className="w-4 h-4 text-yellow-400" />
-              Recompensas Possíveis — Etapa {selectedNode?.stage ?? 1}
+              Recompensas Possíveis — Encontro {encounterNumber}
             </DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-2 max-h-[50vh] overflow-y-auto py-1">

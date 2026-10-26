@@ -12,7 +12,7 @@ export function applyClassBonuses(heroClass: HeroClass | undefined, attack: numb
     crit: hero?.crit || 0, dodge: hero?.dodge || 0 };
 }
 export const DAILY_ROUTE_ENERGY = 8;
-export const CAMPAIGN_VERSION = 4;
+export const CAMPAIGN_VERSION = 5;
 export const SUBMAP_DAYS = [3, 5, 7, 10, 14, 18, 21, 25, 28, 32, 35, 39, 42, 46, 49];
 export const submapDays = (mapId: MapId, area: number) => SUBMAP_DAYS[(Number(mapId.slice(3)) - 1) * 3 + area];
 export const REGIONS = [
@@ -55,48 +55,44 @@ export function canEquipClass(character: Pick<Character, 'heroClass'>, item: Ite
 }
 export const submapEnergy = (mapId: MapId, area: number) => submapDays(mapId, area) * DAILY_ROUTE_ENERGY;
 export const submapCombatCount = (mapId: MapId, area: number) => Math.round(submapEnergy(mapId, area) * 2 / 3);
-export function requiredStageWins(mapId: MapId, area: number, step: number): number {
-  if (step === 4) return 1;
-  const encounters = submapCombatCount(mapId, area) - 1;
-  return Math.floor(encounters / 4) + (step < encounters % 4 ? 1 : 0);
+export function submapEncounter(mapId: MapId, area: number, encounter: number) {
+  const region = Number(mapId.slice(3)) - 1;
+  const submap = region * 3 + area;
+  const count = submapCombatCount(mapId, area);
+  const index = Math.max(0, Math.min(count - 1, encounter));
+  const isBoss = index === count - 1;
+  const power = submap * 5 + index / (count - 1) * 4;
+  const species = MOBS[region][index % 3];
+  const spawn: MonsterSpawn = {
+    name: isBoss ? BOSSES[region][area] : `${species[0]} · ${REGIONS[region][area]} · ${index + 1}`,
+    image: isBoss ? ['🌳', '🦂', '❄️', '🐉', '👑'][region] : species[1],
+    hp: Math.ceil(42 + power * 10 + submap * 10 + (isBoss ? 8 : 0)),
+    damageMin: 4 + power * 0.7 + submap * 0.25,
+    damageMax: 6 + power * 0.7 + submap * 0.25,
+    defense: 0.6 + power * 0.22,
+    dodge: Math.min(8, 2 + submap * 0.3), critChance: isBoss ? 10 : 4,
+    xp: Math.round(12 + power * 2 + (isBoss ? 15 : 0)),
+    goldMin: Math.round(9 + power * 2 + (isBoss ? 10 : 0)), goldMax: Math.round(13 + power * 2 + (isBoss ? 15 : 0)), chance: 65,
+    drops: { common: [classWeapon((['mage', 'ninja', 'archer'] as const)[(area + index) % 3], 0, `common-${mapId}-${area}-${index}`)] },
+  };
+  const dropClass = (['mage', 'ninja', 'archer'] as const)[(area + index) % 3];
+  if (region >= 1) spawn.drops!.rare = [classWeapon(dropClass, 1, `rare-${mapId}-${area}-${index}`)];
+  if (region >= 2) spawn.drops!.epic = [classWeapon(dropClass, 2, `epic-${mapId}-${area}-${index}`)];
+  if (isBoss && region >= 3) spawn.drops!.legendary = [classWeapon(dropClass, 3, `legendary-${mapId}-${area}-${index}`)];
+  const alternate: MonsterSpawn = { ...spawn, name: `${species[0]} Furioso · ${REGIONS[region][area]} · ${index + 1}`,
+    damageMin: spawn.damageMin + 1 / (count - 1), damageMax: spawn.damageMax + 1 / (count - 1), chance: 35 };
+  return { isBoss, spawns: isBoss ? [{ ...spawn, chance: 100 }] : [spawn, alternate] };
 }
 export function expandCampaignMap(base: GameMap): GameMap {
   const region = Number(base.id.slice(3)) - 1;
-  const nodes: MapNode[] = [];
-  for (let area = 0; area < 3; area++) {
-    const submap = region * 3 + area;
-    for (let step = 0; step < 5; step++) {
-      const stage = area * 5 + step + 1;
-      const isBoss = step === 4;
-      const power = submap * 5 + step;
-      const species = MOBS[region][step % 3];
-      const rank = ['Batedor', 'Caçador', 'Veterano', 'Elite'][step] || 'Chefe';
-      // Later encounter pools always start above the strongest earlier pool.
-      const spawn: MonsterSpawn = {
-        name: isBoss ? BOSSES[region][area] : `${species[0]} ${rank} · ${REGIONS[region][area]}`,
-        image: isBoss ? ['🌳', '🦂', '❄️', '🐉', '👑'][region] : species[1],
-        hp: 42 + power * 10 + submap * 10 + (isBoss ? 8 : 0),
-        damageMin: 4 + power * 0.7 + submap * 0.25,
-        damageMax: 6 + power * 0.7 + submap * 0.25,
-        defense: 0.6 + power * 0.22,
-        dodge: Math.min(8, 2 + submap * 0.3), critChance: isBoss ? 10 : 4,
-        xp: 12 + power * 2 + (isBoss ? 15 : 0),
-        goldMin: 9 + power * 2 + (isBoss ? 10 : 0), goldMax: 13 + power * 2 + (isBoss ? 15 : 0), chance: 65,
-        drops: { common: [classWeapon((['mage', 'ninja', 'archer'] as const)[(area + step) % 3], 0, `template-${base.id}-${stage}`)] },
-      };
-      const dropClass = (['mage', 'ninja', 'archer'] as const)[(area + step) % 3];
-      if (region >= 1) spawn.drops!.rare = [classWeapon(dropClass, 1, `rare-${base.id}-${stage}`)];
-      if (region >= 2) spawn.drops!.epic = [classWeapon(dropClass, 2, `epic-${base.id}-${stage}`)];
-      if (isBoss && region >= 3) spawn.drops!.legendary = [classWeapon(dropClass, 3, `legendary-${base.id}-${stage}`)];
-      const alternate: MonsterSpawn = { ...spawn, name: `${species[0]} ${rank} Furioso · ${REGIONS[region][area]}`,
-        hp: spawn.hp + 2, damageMin: spawn.damageMin + 0.1, damageMax: spawn.damageMax + 0.1, chance: 35 };
-      nodes.push({ id: `${base.id}-stage${stage}`, stage, area, requiredWins: requiredStageWins(base.id, area, step), wins: 0,
-        name: isBoss ? BOSSES[region][area] : `${rank} · ${REGIONS[region][area]}`, currentEnemy: null,
-        possibleSpawns: isBoss ? [{ ...spawn, chance: 100 }] : [spawn, alternate],
-        difficulty: isBoss ? 'boss' : step < 2 ? 'medium' : 'hard', isBoss, isUnlocked: stage === 1, isCompleted: false });
-    }
-  }
-  return { ...base, nodes, campaignVersion: CAMPAIGN_VERSION, targetDays: SUBMAP_DAYS.slice(region * 3, region * 3 + 3).reduce((a, b) => a + b, 0) };
+  const nodes: MapNode[] = REGIONS[region].map((name, area) => {
+    const encounter = submapEncounter(base.id, area, 0);
+    return { id: `${base.id}-submap${area + 1}`, stage: area + 1, area, name,
+      requiredWins: submapCombatCount(base.id, area), wins: 0, currentEnemy: null,
+      possibleSpawns: encounter.spawns, difficulty: 'medium', isBoss: false, isUnlocked: area === 0, isCompleted: false };
+  });
+  return { ...base, nodes, submaps: nodes.map(node => ({ id: node.id, name: node.name, index: node.area!, bossName: BOSSES[region][node.area!], encounterCount: node.requiredWins!, targetEnergy: submapEnergy(base.id, node.area!) })),
+    campaignVersion: CAMPAIGN_VERSION, targetDays: SUBMAP_DAYS.slice(region * 3, region * 3 + 3).reduce((a, b) => a + b, 0) };
 }
 export function entryBlock(map: GameMap, node: MapNode): string | null {
   if (!map.isUnlocked || !node.isUnlocked) return 'Vença os encontros da etapa anterior para desbloquear.';
@@ -110,13 +106,19 @@ export function routeProgress(map: GameMap, area: number) {
 export function migrateCampaignMaps(saved: Record<MapId, GameMap> | undefined, fresh: Record<MapId, GameMap>): Record<MapId, GameMap> {
   for (const id of Object.keys(fresh) as MapId[]) {
     const old = saved?.[id];
-    if (!old) continue;
-    const wasCleared = old.nodes?.length > 0 && old.nodes.every(n => n.isCompleted);
+    if (!old?.nodes?.length) continue;
+    const clearedRegion = old.nodes.every(n => n.isCompleted);
     const nodes = fresh[id].nodes.map(node => {
-      const prev = old.nodes?.find(n => n.id === node.id);
-      const completed = Boolean(wasCleared || prev?.isCompleted);
-      const wins = completed ? node.requiredWins! : Math.min(Math.max(0, Math.floor(prev?.wins || 0)), node.requiredWins!);
-      return { ...node, wins, isCompleted: completed || wins === node.requiredWins, lastVictoryId: prev?.lastVictoryId };
+      const previous = old.nodes.filter(n => (n.area || 0) === node.area);
+      const currentFormat = old.campaignVersion === CAMPAIGN_VERSION;
+      const exact = currentFormat ? previous.find(n => n.id === node.id) : undefined;
+      const completed = clearedRegion || (currentFormat ? Boolean(exact?.isCompleted) : previous.some(n => n.isBoss && n.isCompleted));
+      const credit = currentFormat ? exact?.wins || 0 : previous.reduce((sum, n) => sum + (n.isCompleted ? n.requiredWins || 1 : n.wins || 0), 0);
+      const wins = completed ? node.requiredWins! : Math.min(Math.max(0, Math.floor(credit)), node.requiredWins! - 1);
+      const encounter = submapEncounter(id, node.area!, wins);
+      return { ...node, wins, isCompleted: completed, isBoss: completed || encounter.isBoss,
+        difficulty: completed || encounter.isBoss ? 'boss' as const : 'medium' as const,
+        possibleSpawns: encounter.spawns, lastVictoryId: exact?.lastVictoryId };
     });
     fresh[id] = { ...fresh[id], isUnlocked: id === 'map1' || Boolean(old.isUnlocked),
       nodes: nodes.map((node, i) => ({ ...node, isUnlocked: i === 0 || node.isCompleted || nodes[i - 1]?.isCompleted })) };
@@ -128,16 +130,21 @@ export function finishCampaignNode(state: GameState, mapId: MapId, nodeId: strin
   const index = map.nodes.findIndex(n => n.id === nodeId);
   const node = map.nodes[index];
   const encounterId = state.combat?.encounterId;
+  if (node?.currentEnemy?.encounterId && node.currentEnemy.encounterId !== encounterId) return state;
   if (!node || node.isCompleted || entryBlock(map, node) || state.currentMapId !== mapId || state.currentNodeId !== nodeId || !encounterId || encounterId === node.lastVictoryId || !state.combat || state.combat.isActive || state.combat.bossHp > 0 || state.combat.playerHp <= 0) return state;
   const wins = Math.min(node.requiredWins || 1, (node.wins || 0) + 1);
   const completed = wins >= (node.requiredWins || 1);
-  const nodes = map.nodes.map((n, i) => i === index ? { ...n, wins, isCompleted: completed, lastVictoryId: encounterId } : completed && i === index + 1 ? { ...n, isUnlocked: true } : n);
+  const nextEncounter = submapEncounter(mapId, node.area || 0, wins);
+  const nodes = map.nodes.map((n, i) => i === index ? { ...n, wins, isCompleted: completed, lastVictoryId: encounterId,
+    possibleSpawns: nextEncounter.spawns, isBoss: completed || nextEncounter.isBoss,
+    difficulty: completed || nextEncounter.isBoss ? 'boss' as const : 'medium' as const } : completed && i === index + 1 ? { ...n, isUnlocked: true } : n);
   const maps = { ...state.maps, [mapId]: { ...map, nodes } };
   const nextId = `map${Number(mapId.slice(3)) + 1}` as MapId;
   if (nodes.every(n => n.isCompleted) && maps[nextId]) maps[nextId] = { ...maps[nextId], isUnlocked: true };
   const baseLoot = node.isBoss && completed && state.character.heroClass ? classWeapon(state.character.heroClass, Math.min(4, Number(mapId.slice(3)) - 1)) : null;
-  const loot = baseLoot ? { ...baseLoot, name: `${baseLoot.name} · ${node.name}`,
-    description: `Troféu exclusivo obtido ao derrotar ${node.name}.`,
+  const bossName = map.submaps?.find(submap => submap.id === node.id)?.bossName || node.name;
+  const loot = baseLoot ? { ...baseLoot, name: `${baseLoot.name} · ${bossName}`,
+    description: `Troféu exclusivo obtido ao derrotar ${bossName}.`,
     stats: { ...baseLoot.stats, attack: (baseLoot.stats.attack || 0) + (node.area || 0) + 1 } } : null;
   return { ...state, maps, totalBossesDefeated: state.totalBossesDefeated + (node.isBoss && completed ? 1 : 0),
     inventory: loot ? { ...state.inventory, items: [...state.inventory.items, loot] } : state.inventory,

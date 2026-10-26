@@ -426,6 +426,7 @@ export interface MonsterSpawn {
 
 // Stage data with possible monster spawns
 export interface StageData {
+  isBoss?: boolean;
   stage: number;
   spawns: MonsterSpawn[];
 }
@@ -459,6 +460,7 @@ export interface MapNode {
 
 // Enemy currently in combat (spawned from possibleSpawns)
 export interface SpawnedEnemy {
+  encounterId?: string;
   name: string;
   image: string;
   maxHp: number;
@@ -479,7 +481,17 @@ export interface SpawnedEnemy {
   };
 }
 
+export interface GameSubmap {
+  id: string;
+  name: string;
+  index: number;
+  bossName: string;
+  encounterCount: number;
+  targetEnergy: number;
+}
+
 export interface GameMap {
+  submaps?: GameSubmap[];
   campaignVersion?: number;
   activityDays?: string[];
   areaActivityDays?: Record<number, string[]>;
@@ -836,6 +848,7 @@ export function spawnMonster(stageData: StageData): SpawnedEnemy {
       const goldReward = spawn.goldMin + Math.floor(Math.random() * (spawn.goldMax - spawn.goldMin + 1));
       
       return {
+        encounterId: crypto.randomUUID(),
         name: spawn.name,
         image: spawn.image,
         maxHp: spawn.hp,
@@ -847,7 +860,7 @@ export function spawnMonster(stageData: StageData): SpawnedEnemy {
         critChance: spawn.critChance,
         xp: spawn.xp,
         gold: goldReward,
-        isBoss: stageData.stage % 5 === 0, // Stage 5 is boss
+        isBoss: stageData.isBoss ?? stageData.stage === 5, // Explicit submap encounter flag; stage 5 is the legacy fallback
         drops: spawn.drops,
       };
     }
@@ -858,6 +871,7 @@ export function spawnMonster(stageData: StageData): SpawnedEnemy {
   const fallbackGold = fallback.goldMin + Math.floor(Math.random() * (fallback.goldMax - fallback.goldMin + 1));
   
   return {
+    encounterId: crypto.randomUUID(),
     name: fallback.name,
     image: fallback.image,
     maxHp: fallback.hp,
@@ -869,7 +883,7 @@ export function spawnMonster(stageData: StageData): SpawnedEnemy {
     critChance: fallback.critChance,
     xp: fallback.xp,
     gold: fallbackGold,
-    isBoss: stageData.stage % 5 === 0,
+    isBoss: stageData.isBoss ?? stageData.stage === 5,
     drops: fallback.drops,
   };
 }

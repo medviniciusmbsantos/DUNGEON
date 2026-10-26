@@ -12,6 +12,7 @@ import { PETS, type MapId } from '@/types/game';
 interface DungeonProps {
   mapId: MapId;
   nodeId: string;
+  encounterId?: string;
   onExit: () => void;
 }
 
@@ -23,8 +24,8 @@ const difficultyColors: Record<string, string> = {
   boss: 'text-purple-400',
 };
 
-export function Dungeon({ mapId, nodeId, onExit }: DungeonProps) {
-  const { gameState, startCombat, playerAttack, playerSpecialAttack, completeMapNode, spawnEnemyForNode } = useGame();
+export function Dungeon({ mapId, nodeId, encounterId, onExit }: DungeonProps) {
+  const { gameState, startCombat, playerAttack, playerSpecialAttack, completeMapNode } = useGame();
   const { character, combat, maps, selectedPetId } = gameState;
   
   const [playerAnim, setPlayerAnim] = useState<'idle' | 'attack' | 'hit' | 'dodge'>('idle');
@@ -50,27 +51,28 @@ export function Dungeon({ mapId, nodeId, onExit }: DungeonProps) {
     return null;
   }
 
+  const isCurrentBattle = gameState.currentMapId === mapId && gameState.currentNodeId === nodeId && (!encounterId || currentNode.currentEnemy?.encounterId === encounterId);
+  const encounterIsBoss = currentNode.currentEnemy?.isBoss ?? currentNode.isBoss;
   const equippedSpecial = character.equipped.specialAttack;
 
   // ALWAYS start a new battle when component mounts
   useEffect(() => {
-    if (!battleInitialized) {
+    if (isCurrentBattle && !battleInitialized) {
       // Reset victory/defeat states
       setShowVictory(false);
       setShowDefeat(false);
       setPlayerAnim('idle');
       
       // Spawn new enemy and start combat
-      spawnEnemyForNode(mapId, nodeId);
       startCombat();
       
       setBattleInitialized(true);
     }
-  }, [battleInitialized, mapId, nodeId, spawnEnemyForNode, startCombat]);
+  }, [isCurrentBattle, battleInitialized, mapId, nodeId, startCombat]);
 
   // Monitor combat state for victory/defeat
   useEffect(() => {
-    if (combat && !combat.isActive && battleInitialized && !showVictory && !showDefeat) {
+    if (isCurrentBattle && combat && !combat.isActive && battleInitialized && !showVictory && !showDefeat) {
       if (combat.bossHp <= 0) {
         // Victory! - Delay showing victory screen for a better feel
         const timer = setTimeout(() => {
@@ -86,17 +88,17 @@ export function Dungeon({ mapId, nodeId, onExit }: DungeonProps) {
         return () => clearTimeout(timer);
       }
     }
-  }, [combat, mapId, nodeId, completeMapNode, battleInitialized, showVictory, showDefeat]);
+  }, [isCurrentBattle, combat, mapId, nodeId, completeMapNode, battleInitialized, showVictory, showDefeat]);
 
   const handleAttack = () => {
-    if (!combat?.isActive) return;
+    if (!isCurrentBattle || !combat?.isActive) return;
     setPlayerAnim('attack');
     setTimeout(() => setPlayerAnim('idle'), 300);
     playerAttack();
   };
 
   const handleSpecialAttack = () => {
-    if (!combat?.isActive) return;
+    if (!isCurrentBattle || !combat?.isActive) return;
     if (!equippedSpecial) return;
     if (combat.specialAttackCooldown > 0) return;
     setPlayerAnim('attack');
@@ -115,6 +117,8 @@ export function Dungeon({ mapId, nodeId, onExit }: DungeonProps) {
   // Get enemy info from spawned enemy
   const enemyName = currentNode.currentEnemy?.name || currentNode.possibleSpawns[0]?.name || 'Inimigo';
   const enemyImage = currentNode.currentEnemy?.image || currentNode.possibleSpawns[0]?.image || '👹';
+
+  if (!isCurrentBattle) return null;
 
   // Combat not started yet (loading)
   if (!combat) {
@@ -181,8 +185,8 @@ export function Dungeon({ mapId, nodeId, onExit }: DungeonProps) {
              </div>
            </div>
           
-          <p className="text-sm text-cyan-300 mb-4">{currentNode.wins || 0}/{currentNode.requiredWins || 1} vitórias nesta etapa{currentNode.isCompleted ? ' · Etapa concluída!' : ' · Continue a expedição.'}</p>
-          {currentNode.isBoss && (
+          <p className="text-sm text-cyan-300 mb-4">{currentNode.wins || 0}/{currentNode.requiredWins || 1} encontros vencidos neste submapa{currentNode.isCompleted ? ' · Submapa concluído!' : ' · Continue a exploração.'}</p>
+          {encounterIsBoss && (
             <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
               <p className="text-purple-400 font-semibold text-sm sm:text-base">🎉 BOSS DERROTADO!</p>
               <p className="text-[10px] sm:text-xs text-gray-400 mt-1">

@@ -11,9 +11,9 @@ npm run dev -- --host 127.0.0.1
 
 ## A rota avança por vitórias
 
-O calendário não bloqueia bosses. Cada submapa tem quatro etapas de inimigos e um boss. Uma etapa só libera a seguinte após atingir sua quantidade de vitórias. Cada combate custa uma energia; fugir ou perder gasta a tentativa sem avançar a rota. Descanso e eventos de exploração mantêm o custo original de 1 energia; fragmentos continuam sendo convertidos de 5 em 5 para ganhar uma energia.
+O calendário não bloqueia bosses. Cada mapa contém exatamente **três submapas separados**, apresentados como locais para entrar. Cada submapa tem uma exploração contínua de inimigos e **um único boss final**. Cada vitória muda o inimigo e avança o percurso; não existem cinco etapas internas nem metas de repetir o mesmo combate. Cada combate custa uma energia; fugir ou perder gasta a tentativa sem avançar a rota. Descanso e eventos de exploração mantêm o custo original de 1 energia; fragmentos continuam sendo convertidos de 5 em 5 para ganhar uma energia.
 
-O orçamento de referência é **8 energias × duração do submapa**, incluindo uma reserva para os custos originais de descanso e eventos. Para não alterar essas regras, cerca de dois terços do orçamento são combates. No primeiro submapa, são **4 + 4 + 4 + 3 encontros + 1 boss = 16 vitórias**, com referência de aproximadamente 24 energias totais (3 dias a 8 por dia). O gasto real depende de descansos, eventos, derrotas e equipamentos. Não há espera por data.
+O orçamento de referência é **8 energias × duração do submapa**, incluindo uma reserva para os custos originais de descanso e eventos. Para não alterar essas regras, cerca de dois terços do orçamento são combates. No primeiro submapa, são **15 encontros em sequência + 1 boss final = 16 vitórias**, com referência de aproximadamente 24 energias totais (3 dias a 8 por dia). O gasto real depende de descansos, eventos, derrotas e equipamentos. Não há espera por data.
 
 | Região | Primeiro submapa | Segundo submapa | Terceiro submapa |
 | --- | --- | --- | --- |
@@ -23,11 +23,11 @@ O orçamento de referência é **8 energias × duração do submapa**, incluindo
 | Terras Vulcânicas | Campos de Obsidiana: 256 (~32 dias) | Forja Esquecida: 280 (~35 dias) | Cratera do Despertar: 312 (~39 dias) |
 | Abismo | Margem do Vazio: 336 (~42 dias) | Labirinto dos Ecos: 368 (~46 dias) | Trono do Abismo: 392 (~49 dias) |
 
-Cada combate tem um identificador único. Uma vitória não pode ser contabilizada duas vezes, mesmo quando uma etapa exige vários encontros. As vitórias parciais persistem após recarregar. Etapas concluídas em saves anteriores continuam concluídas; não é necessário refazê-las por causa da alteração de regras.
+Cada combate tem um identificador único. Uma vitória não pode ser contabilizada duas vezes. O avanço de cada submapa persiste após recarregar. Vitórias das etapas antigas são convertidas em avanço na exploração contínua; bosses já derrotados permanecem concluídos. O próximo submapa só abre após derrotar o boss anterior, e a próxima região só abre após concluir seus três submapas.
 
 ## Escada de dificuldade
 
-As 75 etapas possuem estatísticas crescentes. A vida e o dano mínimo da variante mais fraca de uma etapa superam os da variante mais forte da etapa anterior, inclusive na transição entre submapas e regiões. Não se sorteia um mob fraco de uma etapa anterior. Os nomes exibem espécie, graduação e área.
+Os encontros são gerados conforme o avanço dentro do submapa: a vida não diminui e o dano mínimo cresce, inclusive entre submapas e regiões. Os nomes exibem espécie, local e número do encontro. Cada submapa tem seu próprio nome, conjunto de inimigos, progresso e boss. Os dados guardam somente o encontro atual e o avanço, evitando salvar milhares de cópias de inimigos no navegador.
 
 Bosses têm mais vida e 10% de crítico. Lobos/cavaleiros podem causar sangramento; aranhas/cobras/escorpiões podem envenenar. Os bônus de santuário e pets continuam ativos. A primeira vitória de cada boss entrega um troféu de arma da classe; repetir um boss não duplica esse prêmio nem a contagem de bosses únicos.
 
