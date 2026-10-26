@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applyClassBonuses, canEquipClass, classWeapon, entryBlock, expandCampaignMap, finishCampaignNode, marketCatalog, marketBlock, transactMarket, migrateCampaignMaps, submapDays, submapEnergy, routeProgress, restAtCamp, MARKET_PRICES, ARMOR_PRICES, exchangeFee } from '../src/lib/campaign.ts';
+import { applyClassBonuses, canEquipClass, classWeapon, entryBlock, expandCampaignMap, finishCampaignNode, marketCatalog, marketBlock, transactMarket, migrateCampaignMaps, submapDays, submapEnergy, submapCombatCount, routeProgress, restAtCamp, MARKET_PRICES, ARMOR_PRICES, exchangeFee } from '../src/lib/campaign.ts';
 import { dismantleBlock, dismantleEquipment, dismantleYield, forgeCost, refineEquipment } from '../src/lib/forge.ts';
 import type { GameMap, GameState, MapId } from '../src/types/game.ts';
 
@@ -26,9 +26,9 @@ function win(s: GameState, mapId: MapId, nodeId: string, id = crypto.randomUUID(
 test('successive submaps need 24, 40, 56, 80, 112 energy at eight daily', () => {
   assert.deepEqual([submapDays('map1',0),submapDays('map1',1),submapDays('map1',2)], [3,5,7]);
   assert.deepEqual([submapEnergy('map1',0),submapEnergy('map1',1),submapEnergy('map1',2),submapEnergy('map2',0),submapEnergy('map2',1)], [24,40,56,80,112]);
-  for (const m of Object.values(maps())) for (let area=0;area<3;area++) assert.equal(routeProgress(m,area).total,submapEnergy(m.id,area));
+  for (const m of Object.values(maps())) for (let area=0;area<3;area++) assert.equal(routeProgress(m,area).total,submapCombatCount(m.id,area));
 });
-test('the boss is reached through 23 victories and beaten on the 24th, with no calendar gate', () => {
+test('the route reserves energy for original rest/events and reaches its boss without a date gate', () => {
   let s=state();s.totalBossesDefeated=0;
   let spent=0;
   for (const node of s.maps.map1.nodes.slice(0,4)) {
@@ -37,10 +37,10 @@ test('the boss is reached through 23 victories and beaten on the 24th, with no c
       s=win(s,'map1',node.id);spent++;
     }
   }
-  assert.equal(spent,23);assert.equal(s.maps.map1.nodes[4].isUnlocked,true);
+  assert.equal(spent,15);assert.equal(s.maps.map1.nodes[4].isUnlocked,true);
   assert.equal(entryBlock(s.maps.map1,s.maps.map1.nodes[4]),null);
   s=win(s,'map1',s.maps.map1.nodes[4].id);spent++;
-  assert.equal(spent,24);assert.equal(routeProgress(s.maps.map1,0).completed,24);
+  assert.equal(spent,16);assert.equal(routeProgress(s.maps.map1,0).completed,16);
   assert.equal(s.maps.map1.nodes[5].isUnlocked,true);assert.equal(s.maps.map2.isUnlocked,false);
 });
 test('partial stage progress persists and unlocks only after the required wins', () => {
@@ -49,7 +49,7 @@ test('partial stage progress persists and unlocks only after the required wins',
   assert.equal(s.maps.map1.nodes[1].isUnlocked,false);
   const loaded=migrateCampaignMaps(JSON.parse(JSON.stringify(s.maps)),maps());
   assert.equal(loaded.map1.nodes[0].wins,1);assert.equal(loaded.map1.nodes[1].isUnlocked,false);
-  s={...s,maps:loaded};for(let i=1;i<6;i++)s=win(s,'map1','map1-stage1');
+  s={...s,maps:loaded};for(let i=1;i<4;i++)s=win(s,'map1','map1-stage1');
   assert.equal(s.maps.map1.nodes[0].isCompleted,true);assert.equal(s.maps.map1.nodes[1].isUnlocked,true);
 });
 test('one combat cannot be claimed twice, including in a partial stage', () => {
@@ -101,13 +101,13 @@ test('legacy cleared stages are preserved without introducing date waits', () =>
   const old=maps();old.map1.campaignVersion=2;
   for(const n of old.map1.nodes.slice(0,5)){n.isCompleted=true;delete n.requiredWins;delete n.wins;}
   const migrated=migrateCampaignMaps(old,maps());
-  assert.equal(routeProgress(migrated.map1,0).completed,24);assert.equal(migrated.map1.nodes[5].isUnlocked,true);
+  assert.equal(routeProgress(migrated.map1,0).completed,16);assert.equal(migrated.map1.nodes[5].isUnlocked,true);
 });
 test('all 15 submaps complete sequentially at their declared energy budgets', () => {
   let s=state();s.totalBossesDefeated=0;let victories=0;let expected=0;
   for(const m of Object.values(s.maps)){
     assert.equal(s.maps[m.id].isUnlocked,true);
-    for(let area=0;area<3;area++)expected+=submapEnergy(m.id,area);
+    for(let area=0;area<3;area++)expected+=submapCombatCount(m.id,area);
     for(const node of m.nodes)for(let i=0;i<node.requiredWins!;i++){s=win(s,m.id,node.id);victories++;}
   }
   assert.equal(victories,expected);assert.equal(s.totalBossesDefeated,15);assert.equal(s.inventory.items.length,15);
@@ -150,10 +150,18 @@ test('rare exchanges use a proportional fee and cannot mint or duplicate items',
   assert.equal(next.inventory.items[0].classRequirement,'mage');assert.equal(next.inventory.items[0].rarity,'legendary');
   assert.equal(transactMarket(next,action),next);
 });
-test('camp heals using gold, leaving route energy unchanged; insufficient funds do nothing', () => {
-  const s=state();s.character.hp=20;s.economy.coins=8;
-  const rested=restAtCamp(s);assert.equal(rested.character.hp,100);assert.equal(rested.character.energy,8);assert.equal(rested.economy.coins,0);
-  s.economy.coins=7;assert.equal(restAtCamp(s),s);
+test('original rest spends one energy, restores HP and preserves gold and fragments', () => {
+  const s=state();s.character.hp=20;s.character.energy=3;s.character.energyFragments=4;s.economy.coins=0;
+  const rested=restAtCamp(s);
+  assert.equal(rested.character.hp,100);assert.equal(rested.character.energy,2);
+  assert.equal(rested.character.energyFragments,4);assert.equal(rested.economy.coins,0);
+  assert.equal(rested.economy.totalCoinsSpent,s.economy.totalCoinsSpent);
+  assert.equal(rested.restDetails?.healAmount,80);
+  s.character.energy=0;assert.equal(restAtCamp(s),s);
+});
+test('the original infinite-energy setting also applies to resting', () => {
+  const s=state();s.character.hp=20;s.character.energy=0;s.settings={infiniteEnergy:true} as never;
+  const rested=restAtCamp(s);assert.equal(rested.character.energy,0);assert.equal(rested.character.hp,100);
 });
 test('dismantling awards exact rarity shards, preserves the gem and consumes the item once', () => {
   const s=state();const item=classWeapon('mage',2);item.upgradeLevel=6;item.gemSlot={id:'gem'} as never;s.inventory.items=[item];

@@ -270,7 +270,7 @@ export function Inventory() {
   };
 
   return (
-    <div className="game-page space-y-5 py-5 sm:py-8">
+    <div className="space-y-3 pt-10 pb-6 px-1">
       {/* Header */}
       <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-md pt-2 pb-4 border-b border-white/5 md:relative md:top-auto md:z-auto md:bg-transparent md:backdrop-blur-none md:pt-0 md:pb-0 md:px-0 md:border-none">
         <h2 className="text-2xl font-bold text-white font-cinzel mb-1">INVENTÁRIO</h2>
@@ -443,7 +443,7 @@ export function Inventory() {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-2 min-[360px]:grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-3 w-full">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 sm:gap-3 w-full">
                 {filteredInventoryItems.map((item) => (
                   <ItemCard
                     key={item.id}

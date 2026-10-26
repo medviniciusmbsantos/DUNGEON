@@ -88,7 +88,7 @@ interface GameContextType {
   
   // Energy System
   recoverEnergy: () => void;
-  restCharacter: () => void; // Pay gold to restore HP without spending route energy
+  restCharacter: () => void; // Original rule: spend 1 energy to restore all HP
   
   // Reset
   resetProgress: () => void;

@@ -1698,7 +1698,7 @@ export function useGameState() {
         ...prev,
         character: {
           ...prev.character,
-          energy: prev.character.energy,
+          energy: prev.settings?.infiniteEnergy ? prev.character.energy : Math.max(0, prev.character.energy - 1),
         },
         currentMapId: mapId,
         currentNodeId: null,

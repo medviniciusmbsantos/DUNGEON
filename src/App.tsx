@@ -623,7 +623,7 @@ function AppContent() {
             }} 
           />
 {/*ptzao*/}        
-          <main className="flex-1 pt-28 lg:pt-20 pb-8 px-3 sm:px-5 lg:px-8 border-x border-white/10 mx-auto w-full max-w-[1440px] relative shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-x-hidden">
+          <main className="flex-1 pt-[104px] lg:pt-16 pb-20 lg:pb-0 lg:pl-0 border-x border-white/10 mx-auto w-full max-w-7xl relative shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-x-hidden">
             <AnimatePresence mode="wait">
               {showDeath ? (
                 <DeathScreen 
@@ -635,7 +635,7 @@ function AppContent() {
                   }} 
                 />
               ) : (
-                <div className="flex-1 min-w-0 h-full">
+                <div className="flex-1 h-full px-2 sm:px-4">
                   {/* Overlay Views (Full Screen) */}
                   <AnimatePresence>
                     {currentNodeId && currentMapId && (

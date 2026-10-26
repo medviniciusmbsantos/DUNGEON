@@ -12,7 +12,7 @@ export function applyClassBonuses(heroClass: HeroClass | undefined, attack: numb
     crit: hero?.crit || 0, dodge: hero?.dodge || 0 };
 }
 export const DAILY_ROUTE_ENERGY = 8;
-export const CAMPAIGN_VERSION = 3;
+export const CAMPAIGN_VERSION = 4;
 export const SUBMAP_DAYS = [3, 5, 7, 10, 14, 18, 21, 25, 28, 32, 35, 39, 42, 46, 49];
 export const submapDays = (mapId: MapId, area: number) => SUBMAP_DAYS[(Number(mapId.slice(3)) - 1) * 3 + area];
 export const REGIONS = [
@@ -54,9 +54,10 @@ export function canEquipClass(character: Pick<Character, 'heroClass'>, item: Ite
   return !item.classRequirement || item.classRequirement === character.heroClass;
 }
 export const submapEnergy = (mapId: MapId, area: number) => submapDays(mapId, area) * DAILY_ROUTE_ENERGY;
+export const submapCombatCount = (mapId: MapId, area: number) => Math.round(submapEnergy(mapId, area) * 2 / 3);
 export function requiredStageWins(mapId: MapId, area: number, step: number): number {
   if (step === 4) return 1;
-  const encounters = submapEnergy(mapId, area) - 1;
+  const encounters = submapCombatCount(mapId, area) - 1;
   return Math.floor(encounters / 4) + (step < encounters % 4 ? 1 : 0);
 }
 export function expandCampaignMap(base: GameMap): GameMap {
@@ -149,13 +150,12 @@ export const SELL_FEE = 2;
 export const EXCHANGE_FEE = 25;
 export const MARKET_BOSSES = [0, 1, 4, 8, 12];
 export const exchangeFee = (item: Item) => Math.max(EXCHANGE_FEE, Math.floor(MARKET_PRICES[Math.max(0, TIERS.indexOf(item.rarity))] * 0.1));
-export const campCost = (maxHp: number) => Math.max(8, Math.ceil(maxHp * 0.08));
 export function restAtCamp(state: GameState): GameState {
-  const cost = campCost(state.character.maxHp);
-  if (state.combat?.isActive || state.character.hp <= 0 || state.character.hp >= state.character.maxHp || state.economy.coins < cost) return state;
-  return { ...state, character: { ...state.character, hp: state.character.maxHp },
-    economy: { ...state.economy, coins: state.economy.coins - cost, totalCoinsSpent: state.economy.totalCoinsSpent + cost },
-    showRestOverlay: true, restDetails: { prevHp: state.character.hp, newHp: state.character.maxHp, healAmount: state.character.maxHp - state.character.hp } };
+  if (!state.settings?.infiniteEnergy && state.character.energy < 1) return state;
+  return { ...state,
+    character: { ...state.character, energy: state.settings?.infiniteEnergy ? state.character.energy : state.character.energy - 1, hp: state.character.maxHp },
+    showRestOverlay: true,
+    restDetails: { prevHp: state.character.hp, newHp: state.character.maxHp, healAmount: Math.max(0, state.character.maxHp - state.character.hp) } };
 }
 export function itemValue(item: Item): number {
   // Resale never exceeds 25% of the matching shop tier, even after upgrades.
