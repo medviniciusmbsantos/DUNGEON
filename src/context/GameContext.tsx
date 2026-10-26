@@ -88,7 +88,7 @@ interface GameContextType {
   
   // Energy System
   recoverEnergy: () => void;
-  restCharacter: () => void; // Lose 3 energy, recover 20% HP
+  restCharacter: () => void; // Pay gold to restore HP without spending route energy
   
   // Reset
   resetProgress: () => void;
@@ -107,7 +107,7 @@ interface GameContextType {
   
   // Forge
   destroyItem: (itemId: string) => void;
-  upgradeItem: (itemId: string) => { success: boolean; result: 'success' | 'fail' | 'downgrade' };
+  upgradeItem: (itemId: string) => void;
   convertShards: (fromRarity: Rarity) => void;
   
   // Chat

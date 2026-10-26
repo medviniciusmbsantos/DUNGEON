@@ -1,4 +1,5 @@
-import { classWeapon, canEquipClass, dayKey, entryBlock, finishCampaignNode, migrateCampaignMaps, transactMarket, type HeroClass, type MarketAction } from '@/lib/campaign';
+import { dismantleEquipment, refineEquipment } from '@/lib/forge';
+import { classWeapon, canEquipClass, restAtCamp, entryBlock, finishCampaignNode, migrateCampaignMaps, transactMarket, type HeroClass, type MarketAction } from '@/lib/campaign';
 // ============================================
 // GAME STATE HOOK - Central State Management
 // ============================================
@@ -60,10 +61,6 @@ import {
   getCharacterTotalXp,
   getLevelFromTotalXp,
   setCharacterToLevel,
-  FORGE_BASE_COSTS,
-  FORGE_RARITY_MULTIPLIERS,
-  FORGE_SUCCESS_CHANCES,
-  FORGE_DOWNGRADE_CHANCES,
   CHEST_UNLOCK_TIMES,
   PETS,
   type PetId,
@@ -889,7 +886,7 @@ const generateMerchantOffers = (): MerchantOffer[] => {
       return {
         id: generateId(),
         title: 'Pedra de Proteção',
-        description: 'Impede downgrade automático em falha de forja (consumida).',
+        description: 'Preserva os cristais em uma falha de forja (consumida).',
         price: randInt(250, 500),
         reward: { type: 'protectionStone', amount: 1 },
       };
@@ -990,6 +987,8 @@ const migrateGameState = (parsed: any): GameState => {
       ...(parsed.settings || {}),
     },
     lootOverlay: null,
+    combat: null,
+    forgeNotice: undefined,
     // CRITICAL: Deep merge character to preserve new fields
     character: {
       ...INITIAL_CHARACTER,
@@ -1169,6 +1168,7 @@ const migrateGameState = (parsed: any): GameState => {
   }
 
   migrated.maps = migrateCampaignMaps(parsed.maps, generateAllMaps());
+  migrated.totalBossesDefeated = Object.values(migrated.maps as GameState['maps']).flatMap(m => m.nodes).filter(n => n.isBoss && n.isCompleted).length;
 
   {
     const normalize = (item: Item | undefined): Item | undefined => {
@@ -1649,97 +1649,11 @@ export function useGameState() {
     setGameState(prev => {
       const selectedMap = prev.maps[mapId];
       const selectedNode = selectedMap?.nodes.find(n => n.id === nodeId);
-      if (!prev.character.heroClass || !selectedNode || entryBlock(selectedMap, selectedNode) || prev.combat?.isActive || prev.character.hp <= 0) return prev;
-      prev = { ...prev, maps: { ...prev.maps, [mapId]: { ...selectedMap,
-        areaActivityDays: { ...selectedMap.areaActivityDays, [selectedNode.area || 0]: [...new Set([...(selectedMap.areaActivityDays?.[selectedNode.area || 0] || []), dayKey()])] } } } };
+      if (!prev.character.heroClass || !selectedNode || entryBlock(selectedMap, selectedNode) || prev.combat?.isActive || prev.dungeonEvent || prev.character.hp <= 0) return prev;
 
       if (!prev.settings?.infiniteEnergy && prev.character.energy <= 0) {
         addDebugLog('Sem energia para entrar na dungeon.');
         return prev;
-      }
-
-      // ...CRITICAL: Ensure maps exist before accessing
-      if (!prev.maps || !prev.maps[mapId]) {
-        console.error(`Map ${mapId} not found in state`, prev.maps);
-        addDebugLog(`Erro: Mapa ${mapId} não encontrado. Recriando mapas...`);
-        
-        const freshMaps = generateAllMaps();
-        const map = freshMaps[mapId];
-        const nodeIndex = map?.nodes.findIndex(n => n.id === nodeId);
-
-        if (nodeIndex === -1 || nodeIndex === undefined) return { ...prev, maps: freshMaps };
-
-        const node = map.nodes[nodeIndex];
-        const eventType = node.isBoss ? 'combat' : rollDungeonEventType();
-
-        if (eventType === 'combat') {
-          const spawnedEnemy = spawnMonster({ stage: node.stage, spawns: node.possibleSpawns });
-          const updatedNodes = [...map.nodes];
-          updatedNodes[nodeIndex] = { ...node, currentEnemy: spawnedEnemy };
-          freshMaps[mapId] = { ...map, nodes: updatedNodes };
-
-          addDebugLog(`Selected node: Map ${mapId}, Stage ${node.stage} (${node.difficulty})`);
-
-          return {
-            ...prev,
-            maps: freshMaps,
-            character: {
-              ...prev.character,
-              energy: prev.settings?.infiniteEnergy ? prev.character.energy : Math.max(0, prev.character.energy - 1),
-            },
-            currentMapId: mapId,
-            currentNodeId: nodeId,
-            dungeonEvent: null,
-          };
-        }
-
-        const baseState: GameState = {
-          ...prev,
-          maps: freshMaps,
-          character: {
-            ...prev.character,
-            energy: prev.settings?.infiniteEnergy ? prev.character.energy : Math.max(0, prev.character.energy - 1),
-          },
-          currentMapId: mapId,
-          currentNodeId: null,
-        };
-
-        if (eventType === 'chest') {
-          const emptySlot = baseState.chests.findIndex(c => !c);
-          if (emptySlot !== -1) {
-            const chestRarity = rollEventChestRarity();
-            const rewards = generateChestRewards(chestRarity);
-            const newChests = [...baseState.chests];
-            newChests[emptySlot] = createDungeonChest(chestRarity, rewards);
-            addDebugLog(`🧰 Baú encontrado! (${chestRarity.toUpperCase()})`);
-            return {
-              ...baseState,
-              chests: newChests,
-              dungeonEvent: { type: 'chest', chestRarity, rewards, mapId, nodeId, stage: node.stage },
-            };
-          }
-
-          addDebugLog(`🧰 Baú encontrado, mas não há espaço (4/4). Baú perdido.`);
-          return { ...baseState, dungeonEvent: null };
-        }
-
-        if (eventType === 'merchant') {
-          addDebugLog('🧙 Mercador Perdido encontrado!');
-          const updatedDailyMissions = applyDailyMissionEvent(baseState, { type: 'merchantFound' });
-          return {
-            ...baseState,
-            dailyMissions: updatedDailyMissions,
-            dungeonEvent: { type: 'merchant', offers: generateMerchantOffers(), mapId, nodeId, stage: node.stage },
-          };
-        }
-
-        addDebugLog('🌿 Santuário da Floresta encontrado!');
-        const updatedDailyMissions = applyDailyMissionEvent(baseState, { type: 'sanctuaryFound' });
-        return {
-          ...baseState,
-          dailyMissions: updatedDailyMissions,
-          dungeonEvent: { type: 'sanctuary', mapId, nodeId, stage: node.stage },
-        };
       }
 
       const map = prev.maps[mapId];
@@ -1784,7 +1698,7 @@ export function useGameState() {
         ...prev,
         character: {
           ...prev.character,
-          energy: prev.settings?.infiniteEnergy ? prev.character.energy : Math.max(0, prev.character.energy - 1),
+          energy: prev.character.energy,
         },
         currentMapId: mapId,
         currentNodeId: null,
@@ -2967,6 +2881,7 @@ export function useGameState() {
           },
         },
         combat: {
+          encounterId: crypto.randomUUID(),
           playerHp: lobbyHp, // Combat HP starts at lobby HP
           bossHp: enemyHp,
           maxPlayerHp: lobbyMaxHp,
@@ -3100,7 +3015,7 @@ export function useGameState() {
       }
 
       // Enemy counter-attack
-      const bossCrit = attemptCrit(0.05);
+      const bossCrit = attemptCrit((spawnedEnemy?.critChance || 5) / 100);
       
       let bossDamage = 0;
       let bossLog = '';
@@ -3124,7 +3039,7 @@ export function useGameState() {
           newPlayerDefenseRemainder = effectiveDefense - defenseToUse;
 
           // defense reduces damage
-          bossDamage = Math.max(1, baseDamage - defenseToUse);
+          bossDamage = Math.max(1, Math.round(baseDamage) - defenseToUse);
           
           if (bossCrit) {
             bossDamage = Math.floor(bossDamage * 1.5);
@@ -3138,13 +3053,13 @@ export function useGameState() {
 
       let statusApplyLog = '';
       if (newBossHp > 0 && bossDamage > 0 && !playerDodged) {
-        if (['Ouriço', 'Lobo das Sombras', 'Lobo da Neve', 'Cavaleiro Esquecido'].includes(enemyName) && Math.random() < 0.2) {
+        if (/Ouriço|Lobo das Sombras|Lobo da Neve|Cavaleiro Esquecido/.test(enemyName) && Math.random() < 0.2) {
           nextBleedTurns = 2;
           statusApplyLog = `🩸 ${enemyName} causou sangramento por 2 turnos!`;
         }
-        if (['Gambá', 'Aranha da Névoa', 'Cobra das Dunas', 'Escorpião Imperial'].includes(enemyName) && Math.random() < 0.2) {
+        if (/Gambá|Aranha da Névoa|Cobra das Dunas|Escorpião Imperial/.test(enemyName) && Math.random() < 0.2) {
           nextPoisonTurns = 3;
-          statusApplyLog = `☠️ ${enemyName} aplicou veneno por 2 turnos!`;
+          statusApplyLog = `☠️ ${enemyName} aplicou veneno por 3 turnos!`;
         }
       }
 
@@ -3475,20 +3390,20 @@ export function useGameState() {
           newPlayerDefenseRemainder = effectiveDefense - defenseToUse;
 
           // defense reduces damage
-          bossDamage = Math.max(1, baseDamage - defenseToUse);
+          bossDamage = Math.max(1, Math.round(baseDamage) - defenseToUse);
           bossLog = `👹 ${enemyName} contra-atacou! -${bossDamage} HP`;
         }
       }
 
       let statusApplyLog = '';
       if (newBossHp > 0 && bossDamage > 0 && !playerDodged) {
-        if (['Ouriço', 'Lobo das Sombras', 'Lobo da Neve', 'Cavaleiro Esquecido'].includes(enemyName) && Math.random() < 0.2) {
+        if (/Ouriço|Lobo das Sombras|Lobo da Neve|Cavaleiro Esquecido/.test(enemyName) && Math.random() < 0.2) {
           nextBleedTurns = 2;
           statusApplyLog = `🩸 ${enemyName} causou sangramento por 2 turnos!`;
         }
-        if (['Gambá', 'Aranha da Névoa', 'Cobra das Dunas', 'Escorpião Imperial'].includes(enemyName) && Math.random() < 0.2) {
+        if (/Gambá|Aranha da Névoa|Cobra das Dunas|Escorpião Imperial/.test(enemyName) && Math.random() < 0.2) {
           nextPoisonTurns = 3;
-          statusApplyLog = `☠️ ${enemyName} aplicou veneno por 2 turnos!`;
+          statusApplyLog = `☠️ ${enemyName} aplicou veneno por 3 turnos!`;
         }
       }
 
@@ -3818,169 +3733,22 @@ export function useGameState() {
 
   const destroyItem = useCallback((itemId: string) => {
     setGameState(prev => {
-      // Find in inventory
-      const itemToDestroy = prev.inventory.items.find(i => i.id === itemId);
-      if (!itemToDestroy) return prev;
-
-      // Check if equipped
-      const isEquipped = Object.values(prev.character.equipped).some(i => i?.id === itemId);
-      if (isEquipped) {
-        addDebugLog(`Cannot destroy equipped item: ${itemToDestroy.name}`);
-        return prev;
-      }
-
-      const rarity = itemToDestroy.rarity;
-      // Drop fragments equal to upgrade level, or 1 if it's a base item (+0)
-      const shardAmount = Math.max(1, itemToDestroy.upgradeLevel);
-      
-      const shards = prev.economy?.shards || { common: 0, rare: 0, epic: 0, legendary: 0, mythic: 0 };
-      const newShards = { ...shards };
-      newShards[rarity] = (newShards[rarity] || 0) + shardAmount;
-      
-      const newInventoryItems = prev.inventory.items.filter(i => i.id !== itemId);
-
-      addDebugLog(`Desmantelou ${itemToDestroy.name}: +${shardAmount} cristal(is) ${rarity}`);
-
-      const updatedDailyMissions = applyDailyMissionEvent(prev, { type: 'itemDestroyed', amount: 1 });
-      return {
-        ...prev,
-        dailyMissions: updatedDailyMissions,
-        economy: {
-          ...prev.economy,
-          shards: newShards,
-        },
-        inventory: {
-          ...prev.inventory,
-          items: newInventoryItems,
-        },
-      };
+      const next = dismantleEquipment(prev, itemId);
+      return next === prev ? prev : { ...next, dailyMissions: applyDailyMissionEvent(next, { type: 'itemDestroyed', amount: 1 }) };
     });
-  }, [addDebugLog]);
+  }, []);
 
-  const upgradeItem = useCallback((itemId: string): { success: boolean; result: 'success' | 'fail' | 'downgrade' } => {
-    let result: 'success' | 'fail' | 'downgrade' = 'fail';
-    let isSuccess = false;
-
+  const upgradeItem = useCallback((itemId: string) => {
+    // Roll once outside the updater so React re-evaluation cannot change the outcome.
+    const roll = Math.random();
     setGameState(prev => {
-      const inventoryItem = prev.inventory.items.find(i => i.id === itemId);
-      const equipmentSlots = ['weapon', 'armor', 'helmet', 'boots', 'accessory'] as const;
-      const equippedSlot = equipmentSlots.find(slot => prev.character.equipped[slot]?.id === itemId) || null;
-
-      const itemToUpgrade = inventoryItem || (equippedSlot ? prev.character.equipped[equippedSlot] : undefined);
-      if (!itemToUpgrade) {
-        addDebugLog(`Item não encontrado para melhoria (id: ${itemId})`);
-        return prev;
-      }
-
-      if (itemToUpgrade.upgradeLevel >= 10) {
-        addDebugLog(`${itemToUpgrade.name} is already at max level (+10)`);
-        return prev;
-      }
-
-      const currentLevel = itemToUpgrade.upgradeLevel;
-      const targetLevel = currentLevel + 1;
-      const rarity = itemToUpgrade.rarity;
-      
-      const baseCost = FORGE_BASE_COSTS[targetLevel];
-      const multiplier = FORGE_RARITY_MULTIPLIERS[rarity];
-      
-      const goldCost = baseCost.gold * multiplier;
-      const shardCost = baseCost.shards;
-
-      const shards = prev.economy?.shards || { common: 0, rare: 0, epic: 0, legendary: 0, mythic: 0 };
-
-      if (prev.economy.coins < goldCost) {
-        addDebugLog(`Insufficient coins for upgrade (${goldCost} required)`);
-        return prev;
-      }
-
-      if (shards[rarity] < shardCost) {
-        addDebugLog(`Cristais insuficientes (${rarity}) para forja (${shardCost} necessário)`);
-        return prev;
-      }
-
-      // Upgrade chances
-      const successChance = FORGE_SUCCESS_CHANCES[currentLevel];
-      const roll = Math.random() * 100;
-
-      let newLevel = currentLevel;
-      const protectionStones = prev.inventory.consumables?.protectionStones || 0;
-      let protectionUsed = 0;
-      
-      if (roll <= successChance) {
-        newLevel = targetLevel;
-        isSuccess = true;
-        result = 'success';
-        addDebugLog(`SUCCESS! ${itemToUpgrade.name} upgraded to +${newLevel}`);
-      } else {
-        // Fail: Check for downgrade
-        const downgradeChance = FORGE_DOWNGRADE_CHANCES[currentLevel];
-        const downgradeRoll = Math.random() * 100;
-        
-        if (downgradeRoll <= downgradeChance && currentLevel > 0) {
-          if (protectionStones > 0) {
-            protectionUsed = 1;
-            result = 'fail';
-            addDebugLog(`Pedra de Proteção consumida! ${itemToUpgrade.name} não sofreu downgrade.`);
-          } else {
-            newLevel = currentLevel - 1;
-            result = 'downgrade';
-            addDebugLog(`FAIL! ${itemToUpgrade.name} downgraded to +${newLevel}`);
-          }
-        } else {
-          result = 'fail';
-          addDebugLog(`FAIL! ${itemToUpgrade.name} stayed at +${newLevel}`);
-        }
-      }
-
-      const updatedItem = { ...itemToUpgrade, upgradeLevel: newLevel };
-      
-      const newEquipped = { ...prev.character.equipped };
-      let newInventoryItems = prev.inventory.items;
-
-      if (inventoryItem) {
-        newInventoryItems = prev.inventory.items.map(i => i.id === itemId ? updatedItem : i);
-        const slot = updatedItem.type as keyof typeof newEquipped;
-        if (newEquipped[slot]?.id === itemId) {
-          (newEquipped as any)[slot] = updatedItem;
-        }
-      } else if (equippedSlot) {
-        (newEquipped as any)[equippedSlot] = updatedItem;
-      }
-
-      const newShards = { ...shards };
-      newShards[rarity] = Math.max(0, newShards[rarity] - shardCost);
-
-      const newState = {
-        ...prev,
-        character: recalculatePlayerStats({
-          ...prev.character,
-          equipped: newEquipped,
-        }),
-        economy: {
-          ...prev.economy,
-          coins: prev.economy.coins - goldCost,
-          shards: newShards,
-          totalCoinsSpent: prev.economy.totalCoinsSpent + goldCost,
-        },
-        inventory: {
-          ...prev.inventory,
-          items: newInventoryItems,
-          consumables: {
-            ...(prev.inventory.consumables || { protectionStones: 0 }),
-            protectionStones: Math.max(0, (prev.inventory.consumables?.protectionStones || 0) - protectionUsed),
-          },
-        },
-      };
-
-      const updatedDailyMissions = applyDailyMissionEvent(newState, { type: 'itemUpgraded', success: isSuccess, newLevel });
-      return { ...newState, dailyMissions: updatedDailyMissions };
+      const next = refineEquipment(prev, itemId, roll);
+      if (next === prev) return prev;
+      const character = recalculatePlayerStats(next.character);
+      const item = next.inventory.items.find(i => i.id === itemId) || Object.values(next.character.equipped).find(i => i?.id === itemId);
+      return { ...next, character, dailyMissions: applyDailyMissionEvent(next, { type: 'itemUpgraded', success: next.forgeNotice?.kind === 'success', newLevel: item && 'upgradeLevel' in item ? item.upgradeLevel : 0 }) };
     });
-
-    // We need to return the actual result from the state update
-    // But since setGameState is async, we'll return a pessimistic success if we didn't return prev
-    return { success: isSuccess, result };
-  }, [addDebugLog]);
+  }, []);
 
   // ============================================
   // RESET SYSTEM
@@ -4496,35 +4264,7 @@ export function useGameState() {
     startUnlockingChest,
     collectChestRewards,
     claimDailyMission,
-    restCharacter: () => {
-      setGameState(prev => {
-        if (!prev.settings?.infiniteEnergy && prev.character.energy < 1) {
-          addDebugLog('Energia insuficiente para descansar! (Custo: 1)');
-          return prev;
-        }
-        
-        const prevHp = prev.character.hp;
-        const newHp = prev.character.maxHp;
-        const healAmount = Math.max(0, newHp - prevHp);
-        
-        addDebugLog(`Descansou na fogueira: ${prev.settings?.infiniteEnergy ? '∞ ⚡' : '-1 ⚡'}, +${healAmount} HP`);
-        
-        return {
-          ...prev,
-          character: {
-            ...prev.character,
-            energy: prev.settings?.infiniteEnergy ? prev.character.energy : prev.character.energy - 1,
-            hp: newHp,
-          },
-          showRestOverlay: true,
-          restDetails: {
-            prevHp,
-            newHp,
-            healAmount,
-          },
-        };
-      });
-    },
+    restCharacter: () => setGameState(prev => restAtCamp(prev)),
     // Pet System
     selectPet: (petId: PetId | null) => {
       setGameState(prev => ({

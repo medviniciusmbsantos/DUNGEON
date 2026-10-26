@@ -1,3 +1,4 @@
+import { ItemArtwork } from '@/components/ItemArtwork';
 import { assetUrl } from '@/lib/assets';
 import { ClassPicker } from '@/components/ClassPicker';
 import { HERO_CLASSES, type HeroClass } from '@/lib/campaign';
@@ -523,7 +524,7 @@ function AppContent() {
     if (reward.type === 'item' && reward.item) {
       return (
         <div key={index} className="flex items-center justify-between bg-black/30 border border-white/5 rounded-md px-2 py-1">
-          <span className="text-xs text-gray-300">{reward.item.name}</span>
+          <span className="flex min-w-0 items-center gap-3"><ItemArtwork item={reward.item} className="w-16" /><span className="text-xs text-gray-300 break-words">{reward.item.name}</span></span>
           <span className="text-[10px] uppercase">{reward.item.rarity}</span>
         </div>
       );
@@ -622,7 +623,7 @@ function AppContent() {
             }} 
           />
 {/*ptzao*/}        
-          <main className="flex-1 pt-[84px] md:pt-16 pb-20 md:pb-0 md:pl-0 border-x border-white/10 mx-auto w-full max-w-7xl relative shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-x-hidden">
+          <main className="flex-1 pt-28 lg:pt-20 pb-8 px-3 sm:px-5 lg:px-8 border-x border-white/10 mx-auto w-full max-w-[1440px] relative shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-x-hidden">
             <AnimatePresence mode="wait">
               {showDeath ? (
                 <DeathScreen 
@@ -634,7 +635,7 @@ function AppContent() {
                   }} 
                 />
               ) : (
-                <div className="flex-1 h-full px-2 sm:px-4">
+                <div className="flex-1 min-w-0 h-full">
                   {/* Overlay Views (Full Screen) */}
                   <AnimatePresence>
                     {currentNodeId && currentMapId && (
@@ -863,7 +864,7 @@ function AppContent() {
               </p>
               <div className="mt-6 space-y-2 text-sm text-gray-400">
                 <p className="text-green-400">+5 HP Máximo</p>
-                <p className="text-red-400">+2 Ataque</p>
+                <p className="text-red-400">+0,5 Ataque base</p>
                 <p className="text-blue-400">+0.5 Defesa</p>
                 <p className="text-yellow-400">+0.3% Crítico</p>
               </div>

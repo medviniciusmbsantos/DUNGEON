@@ -1,5 +1,5 @@
 import { assetUrl } from '@/lib/assets';
-import { expandCampaignMap, HERO_CLASSES, canEquipClass, type HeroClass } from '../lib/campaign';
+import { expandCampaignMap, applyClassBonuses, canEquipClass, type HeroClass } from '../lib/campaign';
 // ============================================
 // DUNGEON OF DISCIPLINE - TYPE DEFINITIONS
 // ============================================
@@ -249,39 +249,6 @@ export const SPECIAL_ATTACK_MULTIPLIERS: Record<Rarity, number> = {
   legendary: 2.3,
 };
 
-// ============================================
-// FORGE SYSTEM CONSTANTS
-// ============================================
-
-export const FORGE_SUCCESS_CHANCES: Record<number, number> = {
-  0: 100, 1: 95, 2: 90, 3: 85, 4: 80, 5: 70, 6: 60, 7: 50, 8: 40, 9: 30
-};
-
-export const FORGE_DOWNGRADE_CHANCES: Record<number, number> = {
-  0: 0, 1: 5, 2: 10, 3: 15, 4: 20, 5: 30, 6: 40, 7: 50, 8: 60, 9: 70
-};
-
-export const FORGE_BASE_COSTS: Record<number, { shards: number; gold: number }> = {
-  1: { shards: 1, gold: 25 },
-  2: { shards: 1, gold: 50 },
-  3: { shards: 1, gold: 75 },
-  4: { shards: 1, gold: 100 },
-  5: { shards: 1, gold: 125 },
-  6: { shards: 1, gold: 150 },
-  7: { shards: 1, gold: 175 },
-  8: { shards: 1, gold: 200 },
-  9: { shards: 1, gold: 225 },
-  10: { shards: 1, gold: 250 },
-};
-
-export const FORGE_RARITY_MULTIPLIERS: Record<Rarity, number> = {
-  common: 1,
-  rare: 2,
-  epic: 3,
-  legendary: 5,
-  mythic: 8,
-};
-
 // Cooldowns based on rarity (in turns)
 export const SPECIAL_ATTACK_COOLDOWNS: Record<Rarity, number> = {
   common: 8,
@@ -466,13 +433,16 @@ export interface StageData {
 
 // Global drop probabilities
 export const GLOBAL_DROP_RATES = {
-  common: 15, // 15%
-  rare: 7,    // 7%
-  epic: 5,    // 5%
-  legendary: 3 // 3%
+  common: 12,
+  rare: 4,
+  epic: 1,
+  legendary: 0.2,
 };
 
 export interface MapNode {
+  requiredWins?: number;
+  wins?: number;
+  lastVictoryId?: string;
   area?: number;
   requiredDays?: number;
   id: string;
@@ -1067,11 +1037,11 @@ export function recalculatePlayerStats(character: Character): Character {
 
   // Calculate total stats (base + equipment)
   // Keep decimals for "accumulated rounding" logic during combat
-  const hero = character.heroClass ? HERO_CLASSES[character.heroClass] : null;
+  const hero = applyClassBonuses(character.heroClass, character.baseStats.attack + equipmentBonuses.attack, character.baseStats.maxHp + equipmentBonuses.maxHp);
   const totalStats = {
-    attack: character.baseStats.attack + equipmentBonuses.attack + (hero?.attack || 0),
+    attack: hero.attack,
     defense: character.baseStats.defense + equipmentBonuses.defense,
-    maxHp: Math.round(character.baseStats.maxHp + equipmentBonuses.maxHp + (hero?.hp || 0)), // HP stays rounded for visual clarity
+    maxHp: hero.maxHp, // HP stays rounded for visual clarity
     dodgeChance: Math.min(character.baseStats.dodgeChance + equipmentBonuses.dodgeChance + (hero?.dodge || 0), 0.35), // 35% cap
     critChance: Math.min(character.baseStats.critChance + equipmentBonuses.critChance + (hero?.crit || 0), 0.40), // 40% cap
     critMultiplier: character.baseStats.critMultiplier, // 150% base
@@ -1242,7 +1212,7 @@ export const LOOTBOX_TYPES: Lootbox[] = [
     id: 'common-box',
     name: 'Caixa de Explorador',
     rarity: 'common',
-    price: 50,
+    price: 1000,
     description: 'Contém itens básicos para aventuras.',
     dropRates: { common: 70, rare: 25, epic: 4, legendary: 0.9, mythic: 0.1 },
     icon: '📦',
@@ -1252,7 +1222,7 @@ export const LOOTBOX_TYPES: Lootbox[] = [
     id: 'rare-box',
     name: 'Baú do Guerreiro',
     rarity: 'rare',
-    price: 150,
+    price: 6000,
     description: 'Itens de qualidade superior.',
     dropRates: { common: 30, rare: 50, epic: 15, legendary: 4, mythic: 1 },
     icon: '🎁',
@@ -1262,7 +1232,7 @@ export const LOOTBOX_TYPES: Lootbox[] = [
     id: 'epic-box',
     name: 'Cofre do Herói',
     rarity: 'epic',
-    price: 400,
+    price: 22000,
     description: 'Equipamentos épicos aguardam!',
     dropRates: { common: 10, rare: 35, epic: 40, legendary: 12, mythic: 3 },
     icon: '🏆',
@@ -1272,7 +1242,7 @@ export const LOOTBOX_TYPES: Lootbox[] = [
     id: 'legendary-box',
     name: 'Relíquia Lendária',
     rarity: 'legendary',
-    price: 1000,
+    price: 95000,
     description: 'Poder lendário em suas mãos.',
     dropRates: { common: 0, rare: 15, epic: 40, legendary: 35, mythic: 10 },
     icon: '👑',
@@ -1827,6 +1797,7 @@ export function calculateAdaptiveBossStats(
 }
 
 export interface CombatState {
+  encounterId?: string;
   playerHp: number; // Combat HP - starts at lobby HP
   bossHp: number;
   maxPlayerHp: number; // Same as lobby max HP
@@ -2024,6 +1995,7 @@ export interface DailyMissionsState {
 // ============================================
 
 export interface GameState {
+  forgeNotice?: { title: string; kind: 'success' | 'error' };
   marketHistory?: { id: string; at: number; text: string }[];
   character: Character;
   selectedPetId: PetId | null;

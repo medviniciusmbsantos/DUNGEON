@@ -1,3 +1,4 @@
+import { ItemArtwork } from '@/components/ItemArtwork';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Swords, Zap, ChevronLeft, Coins, Star, Sparkles, Heart } from 'lucide-react';
@@ -179,13 +180,12 @@ export function Dungeon({ mapId, nodeId, onExit }: DungeonProps) {
              </div>
            </div>
           
+          <p className="text-sm text-cyan-300 mb-4">{currentNode.wins || 0}/{currentNode.requiredWins || 1} vitórias nesta etapa{currentNode.isCompleted ? ' · Etapa concluída!' : ' · Continue a expedição.'}</p>
           {currentNode.isBoss && (
             <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
               <p className="text-purple-400 font-semibold text-sm sm:text-base">🎉 BOSS DERROTADO!</p>
               <p className="text-[10px] sm:text-xs text-gray-400 mt-1">
-                {currentMap.id === 'map5' 
-                  ? 'Parabéns! Você completou todos os mapas!' 
-                  : 'Próximo mapa desbloqueado!'}
+                {currentNode.area === 2 ? currentMap.id === 'map5' ? 'Você concluiu a campanha!' : 'Próxima região desbloqueada!' : 'Próximo submapa desbloqueado!'}
               </p>
             </div>
           )}
@@ -200,7 +200,7 @@ export function Dungeon({ mapId, nodeId, onExit }: DungeonProps) {
               <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 sm:mb-3">Item Encontrado!</p>
               <div className="flex items-center gap-3 sm:gap-4">
                 <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center text-3xl sm:text-4xl shadow-inner">
-                  {combat.droppedItem.icon}
+                  <ItemArtwork item={combat.droppedItem} className="w-full" />
                 </div>
                 <div className="text-left">
                   <p className="text-white font-bold leading-tight text-sm sm:text-base">{combat.droppedItem.name}</p>

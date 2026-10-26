@@ -1,6 +1,6 @@
-# Classes, campanha e mercado
+# Progressão, equipamentos e economia · versão 3
 
-Use Node.js 24 para o desenvolvimento e os testes deste ambiente.
+Desenvolvimento com Node.js 24:
 
 ```sh
 npm ci
@@ -9,64 +9,73 @@ npm run build
 npm run dev -- --host 127.0.0.1
 ```
 
-O projeto original tinha `web-push` no manifesto, mas não no lockfile. O lockfile foi sincronizado para permitir `npm ci`, preservando as versões das dependências existentes.
+## A rota avança por vitórias
 
-## Classes
+O calendário não bloqueia bosses. Cada submapa tem quatro etapas de inimigos e um boss. Uma etapa só libera a seguinte após atingir sua quantidade de vitórias. Cada combate custa uma energia; fugir ou perder gasta a tentativa sem avançar a rota. Baús, santuários e mercadores encontrados durante a exploração não gastam energia.
 
-A seleção aparece junto do nome no início do jogo. Personagens existentes escolhem uma classe ao carregar e mantêm seu progresso e seus itens. A arma anterior vai para o inventário. A escolha é permanente por personagem.
-
-| Classe | Bônus permanente | Armas exclusivas |
-| --- | --- | --- |
-| Mago | +2 ataque, +15 vida | Cajados, cetro, orbe |
-| Ninja | +6 pontos percentuais de crítico, +4 de esquiva | Katanas, lâminas, garras |
-| Arqueiro | +1 ataque, +6 pontos percentuais de esquiva | Arcos |
-
-Cada classe tem cinco armas progressivas. Armaduras são universais. Os bônus de classe são recalculados sem acumular a cada recarga ou troca de equipamento. Armas antigas sem restrição continuam utilizáveis.
-
-## Submapas e dias
-
-São cinco regiões com três submapas cada, quatro encontros e um boss em cada submapa: 75 etapas e 15 bosses.
-
-Os prazos são **por submapa**, não por região. Contam dias distintos de exploração no fuso de São Paulo, registrados quando o jogador entra em um encontro válido. Repetir encontros no mesmo dia não adiciona dias. O dia atual pode contar ao explorar uma área já desbloqueada. Dias sem jogar não reiniciam o contador. Entrar em submapas bloqueados não registra progresso.
+O orçamento é **8 energias × duração de referência do submapa**. No primeiro submapa, são **6 + 6 + 6 + 5 encontros comuns + 1 boss = 24 vitórias/energias**. O boss fica disponível após 23 vitórias e sua derrota completa o percurso de 24. Em oito vitórias por dia, isso corresponde a aproximadamente três dias. Jogar mais ou menos muda o tempo real; não há espera artificial até uma data.
 
 | Região | Primeiro submapa | Segundo submapa | Terceiro submapa |
 | --- | --- | --- | --- |
-| Floresta Sombria | Trilha dos Sussurros: 3 dias | Ruínas Enraizadas: 5 dias | Coração da Floresta: 7 dias |
-| Deserto das Cinzas | Dunas Errantes: 10 dias | Necrópole Solar: 14 dias | Templo das Cinzas: 18 dias |
-| Tundra Congelada | Passagem da Geada: 21 dias | Cavernas de Cristal: 25 dias | Cidadela do Inverno: 28 dias |
-| Terras Vulcânicas | Campos de Obsidiana: 32 dias | Forja Esquecida: 35 dias | Cratera do Despertar: 39 dias |
-| Abismo | Margem do Vazio: 42 dias | Labirinto dos Ecos: 46 dias | Trono do Abismo: 49 dias |
+| Floresta Sombria | Trilha dos Sussurros: 24 energias (~3 dias) | Ruínas Enraizadas: 40 (~5 dias) | Coração da Floresta: 56 (~7 dias) |
+| Deserto das Cinzas | Dunas Errantes: 80 (~10 dias) | Necrópole Solar: 112 (~14 dias) | Templo das Cinzas: 144 (~18 dias) |
+| Tundra Congelada | Passagem da Geada: 168 (~21 dias) | Cavernas de Cristal: 200 (~25 dias) | Cidadela do Inverno: 224 (~28 dias) |
+| Terras Vulcânicas | Campos de Obsidiana: 256 (~32 dias) | Forja Esquecida: 280 (~35 dias) | Cratera do Despertar: 312 (~39 dias) |
+| Abismo | Margem do Vazio: 336 (~42 dias) | Labirinto dos Ecos: 368 (~46 dias) | Trono do Abismo: 392 (~49 dias) |
 
-Os dias anteriores não são transferidos ao próximo submapa. É necessário vencer as etapas em ordem e cumprir os dias do submapa para enfrentar seu boss. Concluir todos os 15 encontros abre a próxima região. Um dia em que duas áreas foram exploradas após um desbloqueio pode contar em ambas.
+Cada combate tem um identificador único. Uma vitória não pode ser contabilizada duas vezes, mesmo quando uma etapa exige vários encontros. As vitórias parciais persistem após recarregar. Etapas concluídas em saves anteriores continuam concluídas; não é necessário refazê-las por causa da alteração de regras.
 
-Bosses sempre geram combate, sem substituir o encontro por mercador ou baú. A primeira vitória entrega uma arma da classe do jogador, com tier da região e +1, +2 ou +3 ataque adicional conforme o submapa, além do nome do boss no troféu. Repetições dão as recompensas normais de combate, mas não duplicam a recompensa de primeira vitória. Lobos e cavaleiros podem causar sangramento; aranhas, cobras e o Escorpião Imperial podem envenenar.
+## Escada de dificuldade
 
-Áreas concluídas em saves antigos continuam concluídas; uma região antiga totalmente concluída permanece concluída na campanha ampliada. Para saves parciais, são preservadas as etapas já vencidas.
+As 75 etapas possuem estatísticas crescentes. A vida e o dano mínimo da variante mais fraca de uma etapa superam os da variante mais forte da etapa anterior, inclusive na transição entre submapas e regiões. Não se sorteia um mob fraco de uma etapa anterior. Os nomes exibem espécie, graduação e área.
 
-## Economia inicial
+Bosses têm mais vida e 10% de crítico. Lobos/cavaleiros podem causar sangramento; aranhas/cobras/escorpiões podem envenenar. Os bônus de santuário e pets continuam ativos. A primeira vitória de cada boss entrega um troféu de arma da classe; repetir um boss não duplica esse prêmio nem a contagem de bosses únicos.
 
-A loja real fica em Castelo → Loja, mantendo a forja existente.
+## Classes equivalentes
 
-| Raridade | Arma | Armadura | Nível mínimo |
-| --- | --- | --- | --- |
-| Comum | 60 ouro | 45 ouro | 1 |
-| Rara | 180 ouro | 140 ouro | 3 |
-| Épica | 420 ouro | 320 ouro | 5 |
-| Lendária | 900 ouro | 700 ouro | 8 |
-| Mítica | 1.800 ouro | 1.400 ouro | 12 |
+| Classe | Especialidade |
+| --- | --- |
+| Mago | +4% dano e +2% vida |
+| Ninja | +8 pontos percentuais de crítico e +2 de esquiva |
+| Arqueiro | +2% dano, +4 pontos percentuais de crítico e +2 de esquiva |
 
-- Venda: paga 25% do preço base do tier, menos uma taxa de 2 ouro. É necessário já possuir os 2 ouro antes de vender.
-- Troca: uma arma de outra classe + 25 ouro gera uma arma da própria classe na mesma raridade. A arma original é consumida; melhorias não são transferidas.
-- Itens equipados não podem ser negociados. Gemas precisam ser removidas antes de vender ou trocar.
-- Comprar entrega uma instância única ao inventário e desconta o saldo na mesma atualização de estado. Repetir uma venda ou troca com o mesmo ID é rejeitado.
-- Comprar e revender sempre perde ouro, mesmo com melhorias. Receitas, despesas e os últimos 50 registros de negociação persistem no save local e no estado sincronizado.
+Os bônus são recalculados a partir dos atributos base e do equipamento, sem acumular ao recarregar. O crítico padrão causa 1,5× dano. Os testes com diferentes patamares de ataque, vida, defesa inimiga e crítico base limitam a diferença de dano esperado entre classes a 3% e de vida efetiva a 2%.
 
-Na primeira área, mobs dão 6–10 ouro e o boss 24–34. Uma armadura comum custa aproximadamente seis vitórias normais; uma arma, oito. Equipamentos, taxas e forja consomem ouro. Os valores são uma calibração inicial; retenção e inflação precisam de acompanhamento com partidas reais.
+As cinco raridades de arma de cada classe têm ataque 3, 10, 22, 40 e 65. Armas exclusivas só podem ser equipadas pela classe correspondente. As ilustrações de cajados, katanas, arcos e armaduras variam conforme a raridade; elmos, botas e acessórios também têm imagem. O atlas de 25 artes está em `public/items/equipment-atlas.png`.
 
-## Validação
+## Economia e loja
 
-`npm test` verifica classes, prazos por submapa, contagem diária, migração, desbloqueios, primeira vitória, economia e conclusão sequencial das 75 etapas. Requer Node.js com suporte a remoção de tipos TypeScript (o ambiente usa Node.js 24).
+| Raridade | Arma | Armadura | Nível | Bosses únicos mínimos |
+| --- | --- | --- | --- | --- |
+| Comum | 160 ouro | 130 ouro | 1 | 0 |
+| Rara | 1.600 | 1.300 | 5 | 1 |
+| Épica | 12.000 | 10.000 | 12 | 4 |
+| Lendária | 75.000 | 60.000 | 25 | 8 |
+| Mítica | 350.000 | 280.000 | 40 | 12 |
 
-O fluxo também foi exercitado em Chromium desktop e celular: criação nas três classes, persistência de atributos, vitória em combate, compra, venda, troca e histórico. Autenticação Google e sincronização real com Supabase não fazem parte desses testes locais.
+- Venda: 12% do preço base, menos taxa de 2 ouro. Requer os 2 ouro antes da operação.
+- Troca: converte uma arma de outra classe em uma da própria classe, mantendo a raridade. Consome a arma e 10% de seu valor base, com mínimo de 25 ouro. Melhorias não são transferidas.
+- Equipamentos vestidos não podem ser vendidos ou trocados. Remova gemas antes de negociar.
+- Comprar e revender sempre perde ouro. Repetir a mesma venda/troca é rejeitado. Todas as operações atualizam inventário e saldo atomicamente e mantêm histórico.
+- O acampamento restaura toda a vida por `máximo(8, teto(8% da vida máxima))` de ouro. **Não consome energia**, para reservar o orçamento da rota aos combates. Exige saldo e vida positiva; não permite descanso durante combate.
+- Na primeira etapa, mobs dão 9–13 ouro. A receita cresce junto da dificuldade. Guarde ouro para descansar antes de gastar todo o saldo em um equipamento.
+- Lootboxes legadas custam 1.000, 6.000, 22.000 e 95.000 ouro; os preços antigos que permitiam lucro esperado por revenda foram removidos.
+- Drops acumulados: comum até 12%, raro até 4%, épico até 1%, lendário até 0,2%. As tabelas de cada região limitam quais raridades podem cair. Prêmios de primeira vitória de bosses são separados.
 
-As regras são aplicadas no cliente, como no projeto original. Uma economia compartilhada entre jogadores exigiria validar as transações em um servidor; o mercado atual negocia com NPCs.
+São preços de progressão, materiais e consumos coerentes entre si; inflação e duração real ainda devem ser acompanhadas com partidas variadas. O ouro já existente nos saves não é apagado.
+
+## Forja funcional
+
+Selecione um equipamento em **Castelo → Forja** para ver custo, chance e materiais.
+
+**Desmantelar:** exige um item desequipado e confirmação. Remove a instância e entrega `1 + piso(nível de melhoria / 3)` cristais da mesma raridade. Se houver uma gema, ela é devolvida ao inventário. Não pode desmantelar duas vezes a mesma instância ou fazê-lo em combate.
+
+**Refinar:** atualiza tanto itens do inventário quanto equipamentos vestidos, recalculando os atributos. O nível máximo é +10. Custo em cristais: `teto(nível alvo / 3)`. O ouro cresce com o nível e a raridade. A chance começa em 100% e termina em 30%. Uma falha preserva o nível do item, mas consome ouro e cristais. Havendo Pedra de Proteção, uma unidade é consumida para preservar os cristais da tentativa que falhou; o ouro ainda é gasto. A interface mostra o resultado real da operação, sem retorno assíncrono de sucesso fictício.
+
+## Layout e validação
+
+Acampamento, mapas, loja e forja usam grids que reorganizam colunas. A navegação compacta cobre celulares e tablets; computadores usam a navegação horizontal. Modais têm rolagem interna e limites de altura; overlays de combate/mapa rolam sem cortar os controles.
+
+`npm test` verifica orçamento por submapa, progressão parcial/idempotência, escada dos mobs, equivalência das classes, migração, preços, transações, descanso, desmantelamento, gemas e refinamento. Testes no Chromium exercitam as telas em 360, 768, 1024, 1440 e 1920 pixels, além das operações reais de inventário, forja e compra. Login Google/sincronização remota não integram esses testes locais.
+
+Publicação: consulte `PREVIEW.md`. O mercado continua sendo de NPCs, com regras locais. Uma economia multijogador exigiria validação de transações em servidor.

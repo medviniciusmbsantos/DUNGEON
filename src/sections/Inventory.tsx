@@ -1,3 +1,4 @@
+import { ItemArtwork } from '@/components/ItemArtwork';
 import { assetUrl } from '@/lib/assets';
 import { canEquipClass, HERO_CLASSES } from '@/lib/campaign';
 import { useState } from 'react';
@@ -113,7 +114,7 @@ function ItemCard({ item, onClick, isEquipped }: ItemCardProps) {
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
     >
-      <span className="text-2xl sm:text-3xl drop-shadow">{item.icon}</span>
+      <ItemArtwork item={item} className="w-3/4 max-w-24" />
       {item.upgradeLevel > 0 && (
         <div className="absolute top-1 left-1 bg-yellow-500 text-black text-[9px] font-black px-1 rounded shadow-md z-10">
           +{item.upgradeLevel}
@@ -270,7 +271,7 @@ export function Inventory() {
   };
 
   return (
-    <div className="space-y-3 pt-10 pb-6 px-1">
+    <div className="game-page space-y-5 py-5 sm:py-8">
       {/* Header */}
       <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-md pt-2 pb-4 border-b border-white/5 md:relative md:top-auto md:z-auto md:bg-transparent md:backdrop-blur-none md:pt-0 md:pb-0 md:px-0 md:border-none">
         <h2 className="text-2xl font-bold text-white font-cinzel mb-1">INVENTÁRIO</h2>
@@ -303,7 +304,7 @@ export function Inventory() {
                 >
                   {item ? (
                     <>
-                      <span className="text-lg xs:text-xl drop-shadow-md">{item.icon}</span>
+                      <ItemArtwork item={item} className="w-full" />
                       {item.upgradeLevel > 0 && (
                         <div className="absolute -top-1 -left-1 bg-yellow-500 text-black text-[8px] font-black px-0.5 rounded shadow border border-black/40">
                           +{item.upgradeLevel}
@@ -424,11 +425,11 @@ export function Inventory() {
               <div className="flex items-center gap-1.5">
                 <Package className="w-4 h-4 text-cyan-400" />
                 <h3 className="text-xs font-black tracking-wider text-white uppercase font-cinzel">
-                  INVENTÁRIO ({allUnequippedItems.length}/30)
+                  INVENTÁRIO ({allUnequippedItems.length} itens)
                 </h3>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500 font-mono font-bold">0 / 30</span>
+                <span className="text-xs text-gray-500 font-mono font-bold">{allUnequippedItems.length} itens</span>
                 <button className="w-6 h-6 rounded-md bg-[#161626] border border-[#2d2d44] flex items-center justify-center text-gray-400 hover:text-white transition-colors">
                   <Plus className="w-3.5 h-3.5" />
                 </button>
@@ -452,7 +453,7 @@ export function Inventory() {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 sm:gap-3 w-full">
+              <div className="grid grid-cols-2 min-[360px]:grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-3 w-full">
                 {filteredInventoryItems.map((item) => (
                   <ItemCard
                     key={item.id}
@@ -574,7 +575,7 @@ export function Inventory() {
             <>
               <DialogHeader>
                 <DialogTitle className="font-cinzel text-lg flex items-center gap-3">
-                  <span className="text-3xl">{selectedItem.icon}</span>
+                  <ItemArtwork item={selectedItem} className="w-24" />
                   <div>
                     <span className={rarityColors[selectedItem.rarity].text}>
                       {selectedItem.name}
@@ -695,7 +696,7 @@ export function Inventory() {
                   <>
                     <DialogHeader>
                       <DialogTitle className="font-cinzel text-lg flex items-center gap-3">
-                        <span className="text-3xl">{item.icon}</span>
+                        <ItemArtwork item={item} className="w-24" />
                         <div>
                           <span className={rarityColors[item.rarity].text}>
                             {item.name}

@@ -164,9 +164,9 @@ export function WorldMap({ onSelectMap, onNavigateToCastle, onClose }: WorldMapP
   const pendingHotspot = HOTSPOTS.find(h => h.id === pendingMapId);
 
   return (
-    <div className="relative w-full min-h-screen bg-black flex flex-col items-center select-none overflow-y-auto">
+    <div className="relative w-full h-dvh bg-black flex flex-col items-center select-none overflow-y-auto">
       {/* Header bar */}
-      <div className="sticky top-0 z-40 w-full max-w-2xl bg-black/85 backdrop-blur-md border-b border-yellow-500/30 px-4 py-3 flex items-center justify-between shadow-lg">
+      <div className="sticky top-0 z-40 w-full max-w-4xl bg-black/85 backdrop-blur-md border-b border-yellow-500/30 px-4 py-3 flex items-center justify-between shadow-lg">
         <Button
           onClick={onClose}
           variant="outline"
@@ -186,7 +186,7 @@ export function WorldMap({ onSelectMap, onNavigateToCastle, onClose }: WorldMapP
       </div>
 
       {/* Map Image Container */}
-      <div className="relative w-full max-w-2xl px-2 py-4 flex justify-center">
+      <div className="relative w-full max-w-4xl px-2 py-4 flex justify-center">
         <div className="relative w-full rounded-2xl overflow-hidden border-2 border-yellow-500/40 shadow-[0_0_50px_rgba(245,158,11,0.15)] bg-black">
           {/* Main Visual Map Image */}
           <img

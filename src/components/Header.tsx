@@ -75,7 +75,7 @@ export function Header({ currentView, onViewChange }: HeaderProps) {
           isCriticalHp ? 'border-red-500/50' : 'border-[#2d2d44]'
         )}
       >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <motion.div 
@@ -103,7 +103,7 @@ export function Header({ currentView, onViewChange }: HeaderProps) {
           </motion.div>
 
           {/* Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = currentView === item.id;
@@ -113,7 +113,7 @@ export function Header({ currentView, onViewChange }: HeaderProps) {
                   key={item.id}
                   onClick={() => onViewChange(item.id)}
                   className={cn(
-                    'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all',
                     isActive 
                       ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50' 
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -129,9 +129,9 @@ export function Header({ currentView, onViewChange }: HeaderProps) {
           </nav>
 
           {/* Stats & Profile */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 min-w-0">
             {/* HP Mini */}
-            <div className="hidden sm:flex items-center gap-2">
+            <div className="hidden xl:flex items-center gap-2">
               <Heart className={cn(
                 'w-4 h-4',
                 isCriticalHp ? 'text-red-500 animate-pulse' : 'text-green-500'
@@ -148,7 +148,7 @@ export function Header({ currentView, onViewChange }: HeaderProps) {
             </div>
 
             {/* XP Mini */}
-            <div className="hidden sm:flex items-center gap-2">
+            <div className="hidden xl:flex items-center gap-2">
               <Zap className="w-4 h-4 text-purple-500" />
               <div className="w-16">
                 <ProgressBar
@@ -173,7 +173,7 @@ export function Header({ currentView, onViewChange }: HeaderProps) {
             </motion.div>
 
             {sanctuaryBuff && (
-              <div className="hidden sm:flex items-center gap-2 bg-green-500/10 px-2 py-1.5 rounded-lg border border-green-500/30">
+              <div className="hidden xl:flex items-center gap-2 bg-green-500/10 px-2 py-1.5 rounded-lg border border-green-500/30">
                 {sanctuaryBuff.type === 'attack' && <Sword className="w-4 h-4 text-green-400" />}
                 {sanctuaryBuff.type === 'defense' && <Shield className="w-4 h-4 text-green-400" />}
                 {sanctuaryBuff.type === 'gold' && <Coins className="w-4 h-4 text-green-400" />}
@@ -203,8 +203,8 @@ export function Header({ currentView, onViewChange }: HeaderProps) {
                     </span>
                   </div>
                 )}
-                <span className="hidden sm:inline text-sm text-gray-300">{character.name || 'Player'}</span>
-                {character.heroClass && <span className="text-xs text-purple-300">{HERO_CLASSES[character.heroClass].icon} {HERO_CLASSES[character.heroClass].name}</span>}
+                <span className="hidden xl:inline text-sm text-gray-300 max-w-32 truncate">{character.name || 'Player'}</span>
+                {character.heroClass && <span className="hidden sm:inline text-xs text-purple-300 whitespace-nowrap">{HERO_CLASSES[character.heroClass].icon} {HERO_CLASSES[character.heroClass].name}</span>}
               </motion.button>
 
               <AnimatePresence>
@@ -253,7 +253,7 @@ export function Header({ currentView, onViewChange }: HeaderProps) {
         </div>
 
         {/* Mobile Navigation */}
-        <nav className="md:hidden flex items-center justify-around py-1 border-t border-white/5">
+        <nav className="lg:hidden flex items-center justify-around py-1 border-t border-white/5">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentView === item.id;
