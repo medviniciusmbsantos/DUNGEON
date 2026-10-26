@@ -1,3 +1,4 @@
+import { CharacterPortrait } from '@/components/CharacterPortrait';
 import { ItemArtwork } from '@/components/ItemArtwork';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -358,7 +359,7 @@ export function Dungeon({ mapId, nodeId, onExit }: DungeonProps) {
               }}
               transition={{ duration: 0.2 }}
             >
-              <div className="text-6xl mb-4">🧙‍♂️</div>
+              <CharacterPortrait heroClass={character.heroClass} className="mb-4 h-36 w-32 sm:h-48 sm:w-44 rounded-xl" />
               <div className="w-32">
                 <ProgressBar 
                   value={combat.playerHp} 

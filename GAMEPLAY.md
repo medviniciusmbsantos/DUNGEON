@@ -43,6 +43,8 @@ Os bônus são recalculados a partir dos atributos base e do equipamento, sem ac
 
 As cinco raridades de arma de cada classe têm ataque 3, 10, 22, 40 e 65. Armas exclusivas só podem ser equipadas pela classe correspondente. As ilustrações de cajados, katanas, arcos e armaduras variam conforme a raridade; elmos, botas e acessórios também têm imagem. O atlas de 25 artes está em `public/items/equipment-atlas.png`.
 
+Os retratos do personagem acompanham sua classe na criação, no acampamento, no perfil, no inventário e no combate. As três artes ficam em `public/characters/`: mago ancião com cajado, arqueiro adulto jovem com arco e ninja adulto jovem com katana. Nenhum retrato contém pet embutido. O sistema de companheiros continua separado do retrato. Saves com a antiga imagem fixa também passam a usar a classe escolhida.
+
 ## Economia e loja
 
 | Raridade | Arma | Armadura | Nível | Bosses únicos mínimos |

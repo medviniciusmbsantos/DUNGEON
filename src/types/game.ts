@@ -1,4 +1,3 @@
-import { assetUrl } from '@/lib/assets';
 import { expandCampaignMap, applyClassBonuses, canEquipClass, type HeroClass } from '../lib/campaign';
 // ============================================
 // DUNGEON OF DISCIPLINE - TYPE DEFINITIONS
@@ -1501,7 +1500,6 @@ export const DEFAULT_PLAYER_PROFILE: PlayerProfile = {
   consecutiveFailures: 0,
   difficultyPreference: 'balanced',
   autoAdjustEnabled: true,
-  avatarUrl: assetUrl('player-avatar.png'),
   activeFocusTag: null,
   focusHistory: [],
   questHistory: [],

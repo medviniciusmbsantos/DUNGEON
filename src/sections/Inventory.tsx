@@ -1,5 +1,5 @@
+import { CharacterPortrait } from '@/components/CharacterPortrait';
 import { ItemArtwork } from '@/components/ItemArtwork';
-import { assetUrl } from '@/lib/assets';
 import { canEquipClass, HERO_CLASSES } from '@/lib/campaign';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
@@ -175,8 +175,7 @@ export function Inventory() {
     equipSpecialAttack, 
     unequipSpecialAttack
   } = useGame();
-  const { character, inventory, playerProfile } = gameState;
-  const [avatarOk, setAvatarOk] = useState(true);
+  const { character, inventory } = gameState;
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [selectedSpecialAttack, setSelectedSpecialAttack] = useState<SpecialAttack | null>(null);
@@ -323,16 +322,7 @@ export function Inventory() {
 
           {/* Column 2: Character Avatar Showcase (EXPANDED TO FULL CARD HEIGHT) */}
           <div className="relative flex-1 self-stretch rounded-2xl overflow-hidden bg-gradient-to-b from-purple-900/20 via-black/40 to-black/80 border border-purple-500/20 shadow-[0_0_25px_rgba(168,85,247,0.2)] flex items-center justify-center min-h-[220px] sm:min-h-[260px]">
-            <img 
-              src={
-                playerProfile?.avatarUrl && avatarOk
-                  ? assetUrl(playerProfile.avatarUrl)
-                  : "https://img.freepik.com/free-photo/view-gnome-creature-nature_23-2150756358.jpg"
-              }
-              alt="Avatar do Personagem" 
-              className="w-full h-full object-cover opacity-95 scale-105"
-              onError={() => setAvatarOk(false)}
-            />
+            <CharacterPortrait heroClass={character.heroClass} className="absolute inset-0 h-full w-full" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c14] via-transparent to-transparent opacity-75" />
 
             {/* Pedestal Circle outline */}

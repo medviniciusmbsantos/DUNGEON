@@ -1,3 +1,4 @@
+import { CharacterPortrait } from './CharacterPortrait';
 import { HERO_CLASSES } from '@/lib/campaign';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sword, Scroll, Backpack, Castle, Heart, Zap, Coins, Flame, LogOut, RefreshCw, Shield, Sparkles, Settings, RotateCcw, AlertTriangle } from 'lucide-react';
@@ -29,14 +30,13 @@ const navItems = [
 
 export function Header({ currentView, onViewChange }: HeaderProps) {
   const { gameState, syncLocalToCloud, setGameState, restartGame } = useGame();
-  const { user, signOut } = useAuth();
+  const { signOut } = useAuth();
   const { permission, toggleNotifications, isSubscribing } = useNotificationScheduler(gameState.quests);
   const { character, economy, recoveryMode, sanctuaryBuff } = gameState;
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
-  const [avatarFailed, setAvatarFailed] = useState(false);
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -189,20 +189,7 @@ export function Header({ currentView, onViewChange }: HeaderProps) {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                {user?.user_metadata?.avatar_url && !avatarFailed ? (
-                  <img
-                    src={user.user_metadata.avatar_url}
-                    alt="avatar"
-                    className="w-7 h-7 rounded-full"
-                    onError={() => setAvatarFailed(true)}
-                  />
-                ) : (
-                  <div className="w-7 h-7 rounded-full bg-purple-500/30 flex items-center justify-center">
-                    <span className="text-xs font-bold text-purple-300">
-                      {character.name?.[0] || 'P'}
-                    </span>
-                  </div>
-                )}
+                {character.heroClass ? <CharacterPortrait heroClass={character.heroClass} mode="avatar" className="h-8 w-8 shrink-0 rounded-full" /> : <span className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/30 text-xs">{character.name?.[0] || 'P'}</span>}
                 <span className="hidden xl:inline text-sm text-gray-300 max-w-32 truncate">{character.name || 'Player'}</span>
                 {character.heroClass && <span className="hidden sm:inline text-xs text-purple-300 whitespace-nowrap">{HERO_CLASSES[character.heroClass].icon} {HERO_CLASSES[character.heroClass].name}</span>}
               </motion.button>
