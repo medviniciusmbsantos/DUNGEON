@@ -1,3 +1,4 @@
+import { assetUrl } from '@/lib/assets';
 import { canEquipClass, HERO_CLASSES } from '@/lib/campaign';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
@@ -324,7 +325,7 @@ export function Inventory() {
             <img 
               src={
                 playerProfile?.avatarUrl && avatarOk
-                  ? playerProfile.avatarUrl
+                  ? assetUrl(playerProfile.avatarUrl)
                   : "https://img.freepik.com/free-photo/view-gnome-creature-nature_23-2150756358.jpg"
               }
               alt="Avatar do Personagem" 

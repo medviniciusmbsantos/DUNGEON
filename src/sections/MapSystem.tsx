@@ -1,3 +1,4 @@
+import { assetUrl } from '@/lib/assets';
 import { activeDays, entryBlock, REGIONS, submapDays } from '@/lib/campaign';
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
@@ -48,7 +49,7 @@ const mapThemes: Record<MapId, {
     line2: 'SOMBRIA',
     color: '#15803d',
     borderColor: 'border-emerald-700/50',
-    bgImage: '/dark_forest_bg.jpg',
+    bgImage: assetUrl('dark_forest_bg.jpg'),
   },
   map2: {
     name: 'Deserto das Cinzas',
@@ -56,7 +57,7 @@ const mapThemes: Record<MapId, {
     line2: 'CINZAS',
     color: '#d97706',
     borderColor: 'border-amber-500/40',
-    bgImage: '/ancient_crypt_bg.jpg',
+    bgImage: assetUrl('ancient_crypt_bg.jpg'),
   },
   map3: {
     name: 'Tundra Congelada',
@@ -64,7 +65,7 @@ const mapThemes: Record<MapId, {
     line2: 'CONGELADA',
     color: '#38bdf8',
     borderColor: 'border-sky-500/40',
-    bgImage: '/lava_volcano_bg.jpg',
+    bgImage: assetUrl('lava_volcano_bg.jpg'),
   },
   map4: {
     name: 'Terras Vulcânicas',
@@ -72,7 +73,7 @@ const mapThemes: Record<MapId, {
     line2: 'VULCÂNICAS',
     color: '#ef4444',
     borderColor: 'border-red-500/40',
-    bgImage: '/void_abyss_bg.jpg',
+    bgImage: assetUrl('void_abyss_bg.jpg'),
   },
   map5: {
     name: 'Abismo',
@@ -80,7 +81,7 @@ const mapThemes: Record<MapId, {
     line2: 'MORTAL',
     color: '#a855f7',
     borderColor: 'border-purple-500/40',
-    bgImage: '/dragon_nest_bg.jpg',
+    bgImage: assetUrl('dragon_nest_bg.jpg'),
   },
 };
 

@@ -1,3 +1,4 @@
+import { assetUrl } from '@/lib/assets';
 import { supabase } from './supabase';
 import type { Quest } from '@/types/game';
 
@@ -94,7 +95,7 @@ export async function subscribeUserToPush(): Promise<PushSubscription | null> {
     // 1. Get or register Service Worker
     let registration = await navigator.serviceWorker.getRegistration();
     if (!registration) {
-      registration = await navigator.serviceWorker.register('/sw.js');
+      registration = await navigator.serviceWorker.register(assetUrl('sw.js'));
     }
     await navigator.serviceWorker.ready;
 

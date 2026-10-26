@@ -30,13 +30,13 @@ self.addEventListener('push', (event) => {
   const title = data.title || '⚔️ Dungeon of Discipline';
   const options = {
     body: data.body || 'Está na hora de cumprir sua missão diária!',
-    icon: data.icon || '/icon.png',
-    badge: data.badge || '/icon.png',
+    icon: data.icon || new URL('icon.png', self.registration.scope).href,
+    badge: data.badge || new URL('icon.png', self.registration.scope).href,
     tag: data.tag || `dod-${Date.now()}`,
     renotify: true,
     vibrate: [200, 100, 200],
     data: {
-      url: data.url || '/',
+      url: data.url || self.registration.scope,
       questId: data.questId || null,
     },
     actions: [
@@ -50,7 +50,7 @@ self.addEventListener('push', (event) => {
 // Notification Click Handler — Focus existing tab or open new
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = event.notification.data?.url || '/';
+  const targetUrl = event.notification.data?.url || self.registration.scope;
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {

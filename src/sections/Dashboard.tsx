@@ -1,3 +1,4 @@
+import { assetUrl } from '@/lib/assets';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
@@ -166,10 +167,10 @@ export function Dashboard({ onEnterDungeon }: DashboardProps) {
   };
 
   const chestImages: Record<string, string> = {
-    common: '/chests/common.png',
-    rare: '/chests/rare.png',
-    epic: '/chests/epic.png',
-    legendary: '/chests/legendary.png',
+    common: assetUrl('chests/common.png'),
+    rare: assetUrl('chests/rare.png'),
+    epic: assetUrl('chests/epic.png'),
+    legendary: assetUrl('chests/legendary.png'),
   };
 
   return (
@@ -337,7 +338,7 @@ export function Dashboard({ onEnterDungeon }: DashboardProps) {
                 {/* Left: Image */}
                 <div className="relative overflow-hidden border-r border-white/5">
                   <img
-                    src="/campfire.png"
+                    src={assetUrl('campfire.png')}
                     alt="Campfire"
                     className="w-full h-full object-cover contrast-105 saturate-110"
                   />

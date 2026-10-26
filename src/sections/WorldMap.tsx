@@ -1,3 +1,4 @@
+import { assetUrl } from '@/lib/assets';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -189,7 +190,7 @@ export function WorldMap({ onSelectMap, onNavigateToCastle, onClose }: WorldMapP
         <div className="relative w-full rounded-2xl overflow-hidden border-2 border-yellow-500/40 shadow-[0_0_50px_rgba(245,158,11,0.15)] bg-black">
           {/* Main Visual Map Image */}
           <img
-            src="/world_map.jpg"
+            src={assetUrl('world_map.jpg')}
             alt="Mapa Mundo - Dungeon of Discipline"
             className="w-full h-auto object-cover block rounded-xl"
           />

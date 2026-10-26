@@ -1,3 +1,4 @@
+import { assetUrl } from '@/lib/assets';
 import { Market } from './Market';
 import { useState } from 'react';
 import { 
@@ -283,7 +284,7 @@ export function Shop() {
               <div className="relative shrink-0 w-28 xs:w-36 sm:w-48 aspect-square rounded-2xl overflow-hidden bg-black/60 border border-amber-500/30 flex items-center justify-center shadow-lg shadow-amber-950/40">
                 {!anvilImgError ? (
                   <img 
-                    src="/forja_anvil.png?v=2" 
+                    src={assetUrl('forja_anvil.png?v=2')}
                     alt="Forja Ancestral" 
                     className="w-full h-full object-cover opacity-95 scale-105"
                     onError={() => setAnvilImgError(true)}

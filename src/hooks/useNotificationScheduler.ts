@@ -1,3 +1,4 @@
+import { assetUrl } from '@/lib/assets';
 import { useEffect, useState, useCallback } from 'react';
 import type { GameState, Quest, DayOfWeek } from '@/types/game';
 import { 
@@ -100,12 +101,12 @@ async function sendForegroundNotification(title: string, body: string, tag: stri
       if (registration && 'showNotification' in registration) {
         await registration.showNotification(title, {
           body,
-          icon: '/icon.png',
-          badge: '/icon.png',
+          icon: assetUrl('icon.png'),
+          badge: assetUrl('icon.png'),
           tag,
           vibrate: [200, 100, 200],
           renotify: true,
-          data: { url: '/' },
+          data: { url: new URL(import.meta.env.BASE_URL, window.location.href).href },
         } as any);
         return;
       }
@@ -118,7 +119,7 @@ async function sendForegroundNotification(title: string, body: string, tag: stri
     try {
       const notification = new Notification(title, {
         body,
-        icon: '/icon.png',
+        icon: assetUrl('icon.png'),
         tag,
       });
       notification.onclick = () => {

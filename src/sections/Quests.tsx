@@ -1,3 +1,4 @@
+import { assetUrl } from '@/lib/assets';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -85,11 +86,11 @@ function rollStreakChestRarity(days: number): 'common' | 'rare' | 'epic' | 'lege
 
 function getChestImagePath(rarity: 'common' | 'rare' | 'epic' | 'legendary'): string {
   switch (rarity) {
-    case 'common': return '/chests/common.png';
-    case 'rare': return '/chests/rare.png';
-    case 'epic': return '/chests/epic.png';
-    case 'legendary': return '/chests/legendary.png';
-    default: return '/chests/common.png';
+    case 'common': return assetUrl('chests/common.png');
+    case 'rare': return assetUrl('chests/rare.png');
+    case 'epic': return assetUrl('chests/epic.png');
+    case 'legendary': return assetUrl('chests/legendary.png');
+    default: return assetUrl('chests/common.png');
   }
 }
 

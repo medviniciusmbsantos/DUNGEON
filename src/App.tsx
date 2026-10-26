@@ -1,3 +1,4 @@
+import { assetUrl } from '@/lib/assets';
 import { ClassPicker } from '@/components/ClassPicker';
 import { HERO_CLASSES, type HeroClass } from '@/lib/campaign';
 import { useState, Component, type ReactNode, type ErrorInfo, useRef, useEffect } from 'react';
@@ -145,6 +146,7 @@ function StartScreen({
   user: any;
 }) {
   const { signOut } = useAuth();
+  const { setGameState } = useGame();
 
   return (
     <motion.div
@@ -176,6 +178,14 @@ function StartScreen({
             <span>{user ? 'Entrar no Jogo' : 'Fazer Login com Google'}</span>
           </Button>
 
+          <Button
+            variant="outline"
+            onClick={() => setGameState(prev => ({ ...prev, isInitialScreen: false, currentMapId: null, currentNodeId: null }))}
+            className="w-full py-6 text-base border-purple-500/50 text-purple-200"
+          >
+            Experimentar sem conta
+          </Button>
+
           {user && (
             <Button
               variant="outline"
@@ -189,7 +199,7 @@ function StartScreen({
         </div>
 
         <p className="mt-8 text-[10px] text-gray-500 uppercase tracking-widest leading-relaxed">
-          O uso de conta permite salvar seu progresso na nuvem<br />e jogar em múltiplos dispositivos.
+          Sem conta, o progresso fica salvo neste dispositivo.<br />Com login, você pode sincronizá-lo na nuvem.
         </p>
       </motion.div>
     </motion.div>
@@ -542,10 +552,10 @@ function AppContent() {
 
   const [eventIntro, setEventIntro] = useState<null | { type: 'chest' | 'merchant' | 'sanctuary'; chestRarity?: string }>(null);
   const chestIntroImages: Record<string, string> = {
-    common: '/chests/common.png',
-    rare: '/chests/rare.png',
-    epic: '/chests/epic.png',
-    legendary: '/chests/legendary.png',
+    common: assetUrl('chests/common.png'),
+    rare: assetUrl('chests/rare.png'),
+    epic: assetUrl('chests/epic.png'),
+    legendary: assetUrl('chests/legendary.png'),
   };
 
   useEffect(() => {
