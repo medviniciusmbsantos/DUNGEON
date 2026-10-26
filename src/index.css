@@ -1,0 +1,321 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Dungeon of Discipline - Dark Fantasy Theme */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 240 33% 14%;
+    --card-foreground: 0 0% 100%;
+    --popover: 240 33% 14%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 263 70% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 187 94% 43%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 240 20% 20%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 263 70% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 20% 25%;
+    --input: 240 20% 20%;
+    --ring: 263 70% 50%;
+    --radius: 0.5rem;
+    
+    /* Custom Colors */
+    --purple-primary: #7c3aed;
+    --purple-dark: #6d28d9;
+    --cyan-primary: #06b6d4;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --gold: #fbbf24;
+    --bg-primary: #000000;
+    --bg-secondary: #1a1a2e;
+    --bg-tertiary: #16213e;
+    --text-primary: #ffffff;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    
+    /* Rarity Colors */
+    --rarity-common: #94a3b8;
+    --rarity-rare: #3b82f6;
+    --rarity-epic: #a855f7;
+    --rarity-legendary: #fbbf24;
+    --rarity-mythic: #ef4444;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    background-color: #000000;
+    color: #ffffff;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+  }
+}
+
+@layer utilities {
+  .font-cinzel {
+    font-family: 'Cinzel', serif;
+  }
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@layer components {
+  /* Gradient Backgrounds */
+  .bg-gradient-dark {
+    background: linear-gradient(180deg, #000000 0%, #1a1a2e 50%, #16213e 100%);
+  }
+  
+  .bg-gradient-purple {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  }
+  
+  .bg-gradient-gold {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  }
+  
+  /* Glow Effects */
+  .glow-purple {
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.5),
+                0 0 40px rgba(124, 58, 237, 0.3),
+                0 0 60px rgba(124, 58, 237, 0.1);
+  }
+  
+  .glow-cyan {
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.5),
+                0 0 40px rgba(6, 182, 212, 0.3),
+                0 0 60px rgba(6, 182, 212, 0.1);
+  }
+  
+  .glow-gold {
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.5),
+                0 0 40px rgba(251, 191, 36, 0.3),
+                0 0 60px rgba(251, 191, 36, 0.1);
+  }
+  
+  .glow-danger {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.5),
+                0 0 40px rgba(239, 68, 68, 0.3),
+                0 0 60px rgba(239, 68, 68, 0.1);
+  }
+  
+  /* Text Glow */
+  .text-glow-purple {
+    text-shadow: 0 0 10px rgba(124, 58, 237, 0.8),
+                 0 0 20px rgba(124, 58, 237, 0.5);
+  }
+  
+  .text-glow-gold {
+    text-shadow: 0 0 10px rgba(251, 191, 36, 0.8),
+                 0 0 20px rgba(251, 191, 36, 0.5);
+  }
+  
+  /* Card Styles */
+  .card-dungeon {
+    @apply bg-[#1a1a2e]/80 border border-[#2d2d44] rounded-xl;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  }
+  
+  .card-dungeon:hover {
+    border-color: var(--purple-primary);
+    box-shadow: 0 4px 30px rgba(124, 58, 237, 0.2);
+  }
+  
+  /* Progress Bars */
+  .progress-bar-bg {
+    @apply bg-[#16213e] rounded-full overflow-hidden;
+  }
+  
+  .progress-bar-fill {
+    @apply h-full rounded-full transition-all duration-500 ease-out;
+  }
+  
+  /* HP Bar Gradient */
+  .hp-bar-fill {
+    background: linear-gradient(90deg, #ef4444 0%, #22c55e 100%);
+    background-size: 200% 100%;
+    background-position: right;
+  }
+  
+  /* XP Bar */
+  .xp-bar-fill {
+    background: linear-gradient(90deg, #7c3aed 0%, #a855f7 100%);
+  }
+  
+  /* Boss HP Bar */
+  .boss-hp-fill {
+    background: linear-gradient(90deg, #7f1d1d 0%, #ef4444 50%, #dc2626 100%);
+  }
+
+  /* Energy Bar */
+  .energy-bar-fill {
+    background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 50%, #f59e0b 100%);
+    background-size: 200% 100%;
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.6),
+                inset 0 0 8px rgba(255, 255, 255, 0.4);
+    position: relative;
+    overflow: hidden;
+    animation: energy-shimmer 3s infinite linear;
+  }
+
+  .energy-bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
+    animation: energy-shine 2s infinite;
+  }
+
+  @keyframes energy-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  @keyframes energy-shine {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+  
+  /* Button Styles */
+  .btn-primary {
+    @apply px-6 py-3 bg-gradient-purple text-white font-semibold rounded-lg;
+    @apply transition-all duration-200 ease-out;
+    @apply hover:scale-105 hover:shadow-lg hover:shadow-purple-500/30;
+    @apply active:scale-95;
+  }
+  
+  .btn-secondary {
+    @apply px-6 py-3 bg-transparent border-2 border-cyan-500 text-cyan-400 font-semibold rounded-lg;
+    @apply transition-all duration-200 ease-out;
+    @apply hover:bg-cyan-500/10 hover:scale-105;
+    @apply active:scale-95;
+  }
+  
+  .btn-gold {
+    @apply px-6 py-3 bg-gradient-gold text-black font-bold rounded-lg;
+    @apply transition-all duration-200 ease-out;
+    @apply hover:scale-105 hover:shadow-lg hover:shadow-yellow-500/30;
+    @apply active:scale-95;
+  }
+  
+  .btn-danger {
+    @apply px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-lg;
+    @apply transition-all duration-200 ease-out;
+    @apply hover:scale-105 hover:shadow-lg hover:shadow-red-500/30;
+    @apply active:scale-95;
+  }
+  
+  /* Rarity Borders */
+  .rarity-common { border-color: var(--rarity-common); }
+  .rarity-rare { border-color: var(--rarity-rare); box-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
+  .rarity-epic { border-color: var(--rarity-epic); box-shadow: 0 0 15px rgba(168, 85, 247, 0.4); }
+  .rarity-legendary { border-color: var(--rarity-legendary); box-shadow: 0 0 20px rgba(251, 191, 36, 0.5); }
+  .rarity-mythic { border-color: var(--rarity-mythic); box-shadow: 0 0 25px rgba(239, 68, 68, 0.6); }
+  
+  /* Animations */
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+  }
+  
+  @keyframes damage-number {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-50px) scale(1.5); }
+  }
+  
+  @keyframes xp-gain {
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-30px); }
+  }
+  
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  .animate-shake {
+    animation: shake 0.5s ease-in-out;
+  }
+  
+  .animate-damage {
+    animation: damage-number 1s ease-out forwards;
+  }
+  
+  .animate-xp {
+    animation: xp-gain 1s ease-out forwards;
+  }
+  
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #1a1a2e;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #7c3aed;
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: #6d28d9;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "Dungeon of Discipline",
+  "short_name": "DungeonDisp",
+  "description": "RPG de Gamificação para Disciplina Diária",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
